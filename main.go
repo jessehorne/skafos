@@ -45,17 +45,18 @@ func run() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	g.Map.GenerateAllDirtChunk(0, 0, true)
+
+	for y := 0; y < 4; y++ {
+		for x := 0; x < 7; x++ {
+			g.Map.GenerateAllDirtChunk(x, y, true)
+		}
+	}
+
 	g.Map.RefreshDrawBatch()
 
 	maxFPS := float64(1 / 30)
 	currentFrame := float64(0)
 	last := time.Now()
-
-	test, err := game.NewSpritesheet("./assets/tiles/all.png")
-	if err != nil {
-		panic(err)
-	}
 
 	win.SetScrollCallback(func(win *opengl.Window, scroll pixel.Vec) {
 		g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
@@ -73,9 +74,6 @@ func run() {
 			g.Draw(win)
 			currentFrame = 0
 		}
-
-		sprite := pixel.NewSprite(test.Picture, pixel.R(0, 0, 16, 16))
-		sprite.Draw(win, pixel.IM)
 
 		g.Update(win, dt)
 		win.Update()

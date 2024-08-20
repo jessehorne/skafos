@@ -27,7 +27,7 @@ func NewMap(name string, s *Spritesheet) *Map {
 		Tiles: map[string]*pixel.Sprite{
 			"dirt": pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
 		},
-		DrawRadius: 1,
+		DrawRadius: 7,
 		ChunkX:     0,
 		ChunkY:     0,
 	}

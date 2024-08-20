@@ -17,15 +17,21 @@ func NewGame(name string) (*Game, error) {
 		return nil, err
 	}
 
+	p, err := NewPlayer()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Game{
 		Map:    NewMap(name, s),
-		Player: NewPlayer(),
+		Player: p,
 		Camera: NewCamera(),
 	}, nil
 }
 
 func (g *Game) Update(win *opengl.Window, dt float64) {
-	g.Camera.Update(win, dt)
+	g.Player.Update(win, dt)
+	g.Camera.Update(g.Player.Position)
 }
 
 func (g *Game) Draw(win *opengl.Window) {
@@ -34,6 +40,7 @@ func (g *Game) Draw(win *opengl.Window) {
 
 	// draw map
 	g.Map.Draw(win)
+
 	// draw player
-	// todo
+	g.Player.Draw(win)
 }

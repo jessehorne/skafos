@@ -82,21 +82,32 @@ func NewPlayer() (*Player, error) {
 
 func (p *Player) Update(win *opengl.Window, dt float64) {
 	if win.Pressed(pixel.KeyA) {
+		if win.Pressed(pixel.KeyW) {
+			p.Position.Y += p.Speed[p.WalkingOrRunning] / 2 * dt
+			p.MovementDirection = PlayerDirectionUp
+		} else if win.Pressed(pixel.KeyS) {
+			p.Position.Y -= p.Speed[p.WalkingOrRunning] / 2 * dt
+			p.MovementDirection = PlayerDirectionDown
+		}
 		p.Position.X -= p.Speed[p.WalkingOrRunning] * dt
 		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
 		p.MovementDirection = PlayerDirectionLeft
-	}
-	if win.Pressed(pixel.KeyD) {
+	} else if win.Pressed(pixel.KeyD) {
+		if win.Pressed(pixel.KeyW) {
+			p.Position.Y += p.Speed[p.WalkingOrRunning] / 2 * dt
+			p.MovementDirection = PlayerDirectionUp
+		} else if win.Pressed(pixel.KeyS) {
+			p.Position.Y -= p.Speed[p.WalkingOrRunning] / 2 * dt
+			p.MovementDirection = PlayerDirectionDown
+		}
 		p.Position.X += p.Speed[p.WalkingOrRunning] * dt
 		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
 		p.MovementDirection = PlayerDirectionRight
-	}
-	if win.Pressed(pixel.KeyS) {
+	} else if win.Pressed(pixel.KeyS) {
 		p.Position.Y -= p.Speed[p.WalkingOrRunning] * dt
 		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
 		p.MovementDirection = PlayerDirectionDown
-	}
-	if win.Pressed(pixel.KeyW) {
+	} else if win.Pressed(pixel.KeyW) {
 		p.Position.Y += p.Speed[p.WalkingOrRunning] * dt
 		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
 		p.MovementDirection = PlayerDirectionUp

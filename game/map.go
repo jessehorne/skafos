@@ -110,7 +110,6 @@ func (m *Map) RefreshDrawBatch() {
 
 					// add tile to batch
 					m.Tiles[tile.Frame].Draw(m.DrawBatch, pixel.IM.Moved(tilePosition))
-
 				}
 			}
 		}

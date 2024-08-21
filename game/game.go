@@ -12,7 +12,7 @@ type Game struct {
 }
 
 func NewGame(name string) (*Game, error) {
-	s, err := NewSpritesheet("./assets/tiles/all.jpg")
+	s, err := NewSpritesheet("./assets/tiles/all.png")
 	if err != nil {
 		return nil, err
 	}

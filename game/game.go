@@ -30,6 +30,10 @@ func NewGame(name string) (*Game, error) {
 }
 
 func (g *Game) Update(win *opengl.Window, dt float64) {
+	// generate chunks as player walks around
+	g.Map.ChunkPosition = g.Player.GetChunkPosition()
+	g.Map.GenerateChunksAroundPlayer()
+
 	g.Player.Update(win, dt)
 	g.Camera.Update(g.Player.Position)
 }

@@ -128,3 +128,10 @@ func (p *Player) Draw(win *opengl.Window) {
 
 	p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
 }
+
+func (p *Player) GetChunkPosition() pixel.Vec {
+	x := math.Floor(p.Position.X / 256)
+	y := math.Floor(p.Position.Y / 256)
+
+	return pixel.V(x, y)
+}

@@ -46,12 +46,6 @@ func run() {
 		log.Fatalln(err)
 	}
 
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 7; x++ {
-			g.Map.GenerateAllDirtChunk(x, y, true)
-		}
-	}
-
 	g.Map.RefreshDrawBatch()
 
 	maxFPS := float64(1 / 30)
@@ -59,7 +53,15 @@ func run() {
 	last := time.Now()
 
 	win.SetScrollCallback(func(win *opengl.Window, scroll pixel.Vec) {
-		g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+		if scroll.Y == 1 {
+			if g.Camera.Zoom < 42 {
+				g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+			}
+		} else {
+			if g.Camera.Zoom > 1.6 {
+				g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+			}
+		}
 	})
 
 	for !win.Closed() {

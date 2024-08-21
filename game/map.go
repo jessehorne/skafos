@@ -6,14 +6,13 @@ import (
 )
 
 type Map struct {
-	Name         string
-	Chunks       map[int]map[int]*Chunk
-	Spritesheets map[string]*Spritesheet
-	DrawBatch    *pixel.Batch // the holder for batch drawing
-	DrawRadius   int          // how many chunks around the current center chunk should be drawn
-	ChunkX       int          // the current center chunks X value
-	ChunkY       int          // the current center chunks Y value
-	Tiles        map[string]*pixel.Sprite
+	Name          string
+	Chunks        map[int]map[int]*Chunk
+	Spritesheets  map[string]*Spritesheet
+	DrawBatch     *pixel.Batch // the holder for batch drawing
+	DrawRadius    float64      // how many chunks around the current center chunk should be drawn
+	ChunkPosition pixel.Vec    // the current center chunk
+	Tiles         map[string]*pixel.Sprite
 }
 
 func NewMap(name string, s *Spritesheet) *Map {
@@ -27,9 +26,28 @@ func NewMap(name string, s *Spritesheet) *Map {
 		Tiles: map[string]*pixel.Sprite{
 			"dirt": pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
 		},
-		DrawRadius: 7,
-		ChunkX:     0,
-		ChunkY:     0,
+		DrawRadius:    4,
+		ChunkPosition: pixel.V(0, 0),
+	}
+}
+
+func (m *Map) GenerateChunksAroundPlayer() {
+	for y := m.ChunkPosition.Y - m.DrawRadius; y < m.ChunkPosition.Y+m.DrawRadius; y++ {
+		for x := m.ChunkPosition.X - m.DrawRadius; x < m.ChunkPosition.X+m.DrawRadius; x++ {
+			// check if chunk exists
+			_, yExists := m.Chunks[int(y)]
+
+			if yExists {
+				_, xExists := m.Chunks[int(y)][int(x)]
+
+				if xExists {
+					continue
+				}
+			}
+
+			// generate chunk
+			m.GenerateAllDirtChunk(int(x), int(y), true)
+		}
 	}
 }
 
@@ -56,14 +74,14 @@ func (m *Map) RefreshDrawBatch() {
 	m.DrawBatch.Clear()
 
 	// load tiles into batch around player
-	for y := m.ChunkY - m.DrawRadius; y < m.ChunkY+m.DrawRadius; y++ {
-		for x := m.ChunkX - m.DrawRadius; x < m.ChunkX+m.DrawRadius; x++ {
-			_, yExists := m.Chunks[y]
+	for y := m.ChunkPosition.Y - m.DrawRadius; y < m.ChunkPosition.Y+m.DrawRadius; y++ {
+		for x := m.ChunkPosition.X - m.DrawRadius; x < m.ChunkPosition.X+m.DrawRadius; x++ {
+			_, yExists := m.Chunks[int(y)]
 			if !yExists {
 				continue
 			}
 
-			_, xExists := m.Chunks[y][x]
+			_, xExists := m.Chunks[int(y)][int(x)]
 			if !xExists {
 				continue
 			}
@@ -71,7 +89,7 @@ func (m *Map) RefreshDrawBatch() {
 			for ty := 0; ty < 16; ty++ {
 				for tx := 0; tx < 16; tx++ {
 					// get tile
-					tile, tileExists := m.Chunks[y][x].Blocks[ty][tx]
+					tile, tileExists := m.Chunks[int(y)][int(x)].Blocks[ty][tx]
 					if !tileExists {
 						continue
 					}
@@ -81,8 +99,8 @@ func (m *Map) RefreshDrawBatch() {
 					chunkOffsetY := y * 256
 
 					// where the tiles are drawn relative to the chunks top-left position
-					tileX := chunkOffsetX + tx*16
-					tileY := chunkOffsetY + ty*16
+					tileX := chunkOffsetX + float64(tx*16)
+					tileY := chunkOffsetY + float64(ty*16)
 
 					// add tile to batch
 					if tile.Type == BlockTypeDirt && tile.Frame == BlockTypeDirtFrameDirt {

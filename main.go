@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"github.com/jessehorne/skafos/game"
@@ -64,6 +65,9 @@ func run() {
 		}
 	})
 
+	frames := 0
+	second := time.Tick(time.Second)
+
 	for !win.Closed() {
 		dt := time.Since(last).Seconds()
 		last = time.Now()
@@ -79,6 +83,14 @@ func run() {
 
 		g.Update(win, dt)
 		win.Update()
+
+		frames++
+		select {
+		case <-second:
+			win.SetTitle(fmt.Sprintf("%s | FPS: %d", cfg.Title, frames))
+			frames = 0
+		default:
+		}
 	}
 }
 

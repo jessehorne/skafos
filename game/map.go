@@ -12,7 +12,7 @@ type Map struct {
 	DrawBatch     *pixel.Batch // the holder for batch drawing
 	DrawRadius    float64      // how many chunks around the current center chunk should be drawn
 	ChunkPosition pixel.Vec    // the current center chunk
-	Tiles         map[string]*pixel.Sprite
+	Tiles         map[byte]*pixel.Sprite
 }
 
 func NewMap(name string, s *Spritesheet) *Map {
@@ -23,8 +23,12 @@ func NewMap(name string, s *Spritesheet) *Map {
 			"all": s,
 		},
 		DrawBatch: pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
-		Tiles: map[string]*pixel.Sprite{
-			"dirt": pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
+		Tiles: map[byte]*pixel.Sprite{
+			BlockTypeDirtFrameDirt: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame1:   pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame2:   pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame3:   pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame4:   pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
 		},
 		DrawRadius:    4,
 		ChunkPosition: pixel.V(0, 0),
@@ -52,7 +56,7 @@ func (m *Map) GenerateChunksAroundPlayer() {
 }
 
 func (m *Map) GenerateAllDirtChunk(x, y int, force bool) {
-	newChunk := NewChunk(x, y, 16, 16)
+	newChunk := NewChunk(x, y, 16, 16, "grass")
 
 	_, yExists := m.Chunks[y]
 	if !yExists {
@@ -102,10 +106,10 @@ func (m *Map) RefreshDrawBatch() {
 					tileX := chunkOffsetX + float64(tx*16)
 					tileY := chunkOffsetY + float64(ty*16)
 
+					tilePosition := pixel.V(float64(tileX), float64(tileY))
+
 					// add tile to batch
-					if tile.Type == BlockTypeDirt && tile.Frame == BlockTypeDirtFrameDirt {
-						m.Tiles["dirt"].Draw(m.DrawBatch, pixel.IM.Moved(pixel.V(float64(tileX), float64(tileY))))
-					}
+					m.Tiles[tile.Frame].Draw(m.DrawBatch, pixel.IM.Moved(tilePosition))
 
 				}
 			}

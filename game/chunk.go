@@ -1,5 +1,7 @@
 package game
 
+import "math/rand/v2"
+
 type Chunk struct {
 	X      int
 	Y      int
@@ -8,7 +10,7 @@ type Chunk struct {
 	Blocks map[int]map[int]*Block
 }
 
-func NewChunk(x, y, w, h int) *Chunk {
+func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 	newChunk := &Chunk{
 		X:      x,
 		Y:      y,
@@ -20,7 +22,26 @@ func NewChunk(x, y, w, h int) *Chunk {
 	for ty := 0; ty < h; ty++ {
 		newChunk.Blocks[ty] = map[int]*Block{}
 		for tx := 0; tx < w; tx++ {
-			newBlock := NewBlock(BlockTypeDirt, BlockTypeDirtFrameDirt)
+			var newBlock *Block
+
+			if chunkType == "dirt" {
+				newBlock = NewBlock(BlockTypeDirt, BlockTypeDirtFrameDirt)
+			} else if chunkType == "grass" {
+				var frame byte
+				rnd := rand.IntN(100)
+
+				if rnd < 80 {
+					frame = BlockTypeGrassFrame1
+				} else if rnd < 95 {
+					frame = BlockTypeGrassFrame2
+				} else if rnd < 99 {
+					frame = BlockTypeGrassFrame3
+				} else if rnd <= 100 {
+					frame = BlockTypeGrassFrame4
+				}
+				newBlock = NewBlock(BlockTypeGrass, frame)
+			}
+
 			newChunk.Blocks[ty][tx] = newBlock
 		}
 	}

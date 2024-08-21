@@ -7,7 +7,7 @@ type Chunk struct {
 	Y      int
 	W      int
 	H      int
-	Blocks map[int]map[int]*Block
+	Blocks map[int]map[int][]*Block
 }
 
 func NewChunk(x, y, w, h int, chunkType string) *Chunk {
@@ -16,11 +16,11 @@ func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 		Y:      y,
 		W:      w,
 		H:      h,
-		Blocks: map[int]map[int]*Block{},
+		Blocks: map[int]map[int][]*Block{},
 	}
 
 	for ty := 0; ty < h; ty++ {
-		newChunk.Blocks[ty] = map[int]*Block{}
+		newChunk.Blocks[ty] = map[int][]*Block{}
 		for tx := 0; tx < w; tx++ {
 			var newBlock *Block
 
@@ -42,7 +42,15 @@ func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 				newBlock = NewBlock(BlockTypeGrass, frame)
 			}
 
-			newChunk.Blocks[ty][tx] = newBlock
+			newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newBlock)
+
+			// add trees maybe
+			treeRnd := rand.IntN(100)
+
+			if treeRnd <= 2 {
+				newTreeBlock := NewBlock(BlockTypeTree, BlockTypeTreeFrameGrownTop)
+				newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newTreeBlock)
+			}
 		}
 	}
 

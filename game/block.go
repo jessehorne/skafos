@@ -9,6 +9,11 @@ const (
 	BlockTypeGrassFrame2 byte = 2
 	BlockTypeGrassFrame3 byte = 3
 	BlockTypeGrassFrame4 byte = 4
+
+	BlockTypeTree                 byte = 2
+	BlockTypeTreeFrameSapling     byte = 5
+	BlockTypeTreeFrameGrownTop    byte = 6
+	BlockTypeTreeFrameGrownBottom byte = 7
 )
 
 type Block struct {

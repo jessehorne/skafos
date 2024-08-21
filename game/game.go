@@ -12,18 +12,18 @@ type Game struct {
 }
 
 func NewGame(name string) (*Game, error) {
-	s, err := NewSpritesheet("./assets/tiles/all.png")
-	if err != nil {
-		return nil, err
-	}
-
 	p, err := NewPlayer()
 	if err != nil {
 		return nil, err
 	}
 
+	m, err := NewMap(name)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Game{
-		Map:    NewMap(name, s),
+		Map:    m,
 		Player: p,
 		Camera: NewCamera(),
 	}, nil
@@ -43,8 +43,16 @@ func (g *Game) Draw(win *opengl.Window) {
 	win.SetMatrix(cam)
 
 	// draw map
-	g.Map.Draw(win)
+	g.Map.FloorBatch.Clear()
+	g.Map.TreeBatchBottom.Clear()
+	g.Map.TreeBatchTop.Clear()
+
+	g.Map.RefreshDrawBatch()
+	g.Map.FloorBatch.Draw(win)
+	g.Map.TreeBatchBottom.Draw(win)
 
 	// draw player
 	g.Player.Draw(win)
+
+	g.Map.TreeBatchTop.Draw(win)
 }

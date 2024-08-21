@@ -6,33 +6,45 @@ import (
 )
 
 type Map struct {
-	Name          string
-	Chunks        map[int]map[int]*Chunk
-	Spritesheets  map[string]*Spritesheet
-	DrawBatch     *pixel.Batch // the holder for batch drawing
-	DrawRadius    float64      // how many chunks around the current center chunk should be drawn
-	ChunkPosition pixel.Vec    // the current center chunk
-	Tiles         map[byte]*pixel.Sprite
+	Name            string
+	Chunks          map[int]map[int]*Chunk
+	Spritesheets    map[string]*Spritesheet
+	FloorBatch      *pixel.Batch // the holder for batch drawing
+	TreeBatchBottom *pixel.Batch
+	TreeBatchTop    *pixel.Batch
+	DrawRadius      float64   // how many chunks around the current center chunk should be drawn
+	ChunkPosition   pixel.Vec // the current center chunk
+	Tiles           map[byte]*pixel.Sprite
 }
 
-func NewMap(name string, s *Spritesheet) *Map {
+func NewMap(name string) (*Map, error) {
+	s, err := NewSpritesheet("./assets/tiles/all.png")
+	if err != nil {
+		return nil, err
+	}
+
 	return &Map{
 		Name:   name,
 		Chunks: map[int]map[int]*Chunk{},
 		Spritesheets: map[string]*Spritesheet{
 			"all": s,
 		},
-		DrawBatch: pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
+		FloorBatch:      pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
+		TreeBatchBottom: pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
+		TreeBatchTop:    pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
 		Tiles: map[byte]*pixel.Sprite{
-			BlockTypeDirtFrameDirt: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame1:   pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame2:   pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame3:   pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame4:   pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
+			BlockTypeDirtFrameDirt:        pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame1:          pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame2:          pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame3:          pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame4:          pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
+			BlockTypeTreeFrameSapling:     pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-4*16, 16, s.Picture.Bounds().H()-5*16)),
+			BlockTypeTreeFrameGrownTop:    pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-4*16, 3*16, s.Picture.Bounds().H()-6*16)),
+			BlockTypeTreeFrameGrownBottom: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H()-4*16, 5*16, s.Picture.Bounds().H()-6*16)),
 		},
 		DrawRadius:    4,
 		ChunkPosition: pixel.V(0, 0),
-	}
+	}, nil
 }
 
 func (m *Map) GenerateChunksAroundPlayer() {
@@ -75,7 +87,9 @@ func (m *Map) GenerateAllDirtChunk(x, y int, force bool) {
 
 // RefreshDrawBatch loads the chunks around the maps center chunk using
 func (m *Map) RefreshDrawBatch() {
-	m.DrawBatch.Clear()
+	m.FloorBatch.Clear()
+
+	treeTops := []pixel.Vec{} // so we can redraw in reverse later because drawing from top to bottom causes overlapping issue
 
 	// load tiles into batch around player
 	for y := m.ChunkPosition.Y - m.DrawRadius; y < m.ChunkPosition.Y+m.DrawRadius; y++ {
@@ -93,7 +107,7 @@ func (m *Map) RefreshDrawBatch() {
 			for ty := 0; ty < 16; ty++ {
 				for tx := 0; tx < 16; tx++ {
 					// get tile
-					tile, tileExists := m.Chunks[int(y)][int(x)].Blocks[ty][tx]
+					tiles, tileExists := m.Chunks[int(y)][int(x)].Blocks[ty][tx]
 					if !tileExists {
 						continue
 					}
@@ -109,15 +123,26 @@ func (m *Map) RefreshDrawBatch() {
 					tilePosition := pixel.V(float64(tileX), float64(tileY))
 
 					// add tile to batch
-					m.Tiles[tile.Frame].Draw(m.DrawBatch, pixel.IM.Moved(tilePosition))
+					for i := 0; i < len(tiles); i++ {
+						tile := tiles[i]
+						if tile.Type == BlockTypeTree {
+							treeTops = append(treeTops, tilePosition)
+							m.Tiles[BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tilePosition))
+						} else {
+							m.Tiles[tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tilePosition))
+						}
+					}
 				}
 			}
 		}
 	}
+
+	// add tree tops to their batch
+	for i := len(treeTops) - 1; i >= 0; i-- {
+		m.Tiles[BlockTypeTreeFrameGrownTop].Draw(m.TreeBatchTop, pixel.IM.Moved(treeTops[i]))
+	}
 }
 
 func (m *Map) Draw(win *opengl.Window) {
-	m.DrawBatch.Clear()
-	m.RefreshDrawBatch()
-	m.DrawBatch.Draw(win)
+
 }

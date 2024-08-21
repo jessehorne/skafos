@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"github.com/gopxl/pixel/v2"
 	"image"
 	_ "image/jpeg"
@@ -21,11 +20,10 @@ func NewSpritesheet(path string) (*Spritesheet, error) {
 	}
 	defer file.Close()
 
-	img, de, err := image.Decode(file)
+	img, _, err := image.Decode(file)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(de)
 
 	return &Spritesheet{
 		Path:    path,

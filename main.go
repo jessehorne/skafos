@@ -42,12 +42,14 @@ func run() {
 	win.Clear(colornames.Black)
 
 	// create new game
-	g, err := game.NewGame("test")
+	g, err := game.NewGame("test", win)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	g.Init()
 	g.Map.RefreshDrawBatch()
+	g.CollideablesDrawDebug = true
 
 	maxFPS := float64(1 / 30)
 	currentFrame := float64(0)
@@ -63,6 +65,14 @@ func run() {
 				g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
 			}
 		}
+	})
+
+	win.SetButtonCallback(func(win *opengl.Window, button pixel.Button, action pixel.Action) {
+		g.ButtonCallback(button, action)
+	})
+
+	win.SetCharCallback(func(win *opengl.Window, r rune) {
+		g.CharCallback(r)
 	})
 
 	frames := 0

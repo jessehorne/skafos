@@ -1,6 +1,10 @@
 package game
 
-import "math/rand/v2"
+import (
+	"github.com/gopxl/pixel/v2"
+	"github.com/gopxl/pixel/v2/backends/opengl"
+	"math/rand/v2"
+)
 
 type Chunk struct {
 	X      int
@@ -10,7 +14,7 @@ type Chunk struct {
 	Blocks map[int]map[int][]*Block
 }
 
-func NewChunk(x, y, w, h int, chunkType string) *Chunk {
+func NewChunk(win *opengl.Window, x, y, w, h int, chunkType string, g *Game) *Chunk {
 	newChunk := &Chunk{
 		X:      x,
 		Y:      y,
@@ -24,8 +28,10 @@ func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 		for tx := 0; tx < w; tx++ {
 			var newBlock *Block
 
+			pos := pixel.V(float64(x)*256+float64(tx)*16, float64(y)*256+float64(ty)*16)
+
 			if chunkType == "dirt" {
-				newBlock = NewBlock(BlockTypeDirt, BlockTypeDirtFrameDirt)
+				newBlock = NewBlock(win, BlockTypeDirt, BlockTypeDirtFrameDirt, pos)
 			} else if chunkType == "grass" {
 				var frame byte
 				rnd := rand.IntN(100)
@@ -39,7 +45,7 @@ func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 				} else if rnd <= 100 {
 					frame = BlockTypeGrassFrame4
 				}
-				newBlock = NewBlock(BlockTypeGrass, frame)
+				newBlock = NewBlock(win, BlockTypeGrass, frame, pos)
 			}
 
 			newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newBlock)
@@ -48,8 +54,12 @@ func NewChunk(x, y, w, h int, chunkType string) *Chunk {
 			treeRnd := rand.IntN(100)
 
 			if treeRnd <= 2 {
-				newTreeBlock := NewBlock(BlockTypeTree, BlockTypeTreeFrameGrownTop)
-				newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newTreeBlock)
+				spawnSafe := 50.0
+				if (pos.X > spawnSafe || pos.X < -spawnSafe) && (pos.Y > spawnSafe || pos.Y < -spawnSafe) {
+					newTreeBlock := NewBlock(win, BlockTypeTree, BlockTypeTreeFrameGrownTop, pos)
+					newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newTreeBlock)
+					g.AddCollideable(newTreeBlock)
+				}
 			}
 		}
 	}

@@ -47,7 +47,7 @@ func NewMap(name string) (*Map, error) {
 	}, nil
 }
 
-func (m *Map) GenerateChunksAroundPlayer() {
+func (m *Map) GenerateChunksAroundPlayer(g *Game, win *opengl.Window) {
 	for y := m.ChunkPosition.Y - m.DrawRadius; y < m.ChunkPosition.Y+m.DrawRadius; y++ {
 		for x := m.ChunkPosition.X - m.DrawRadius; x < m.ChunkPosition.X+m.DrawRadius; x++ {
 			// check if chunk exists
@@ -62,13 +62,13 @@ func (m *Map) GenerateChunksAroundPlayer() {
 			}
 
 			// generate chunk
-			m.GenerateAllDirtChunk(int(x), int(y), true)
+			m.GenerateAllDirtChunk(win, int(x), int(y), true, g)
 		}
 	}
 }
 
-func (m *Map) GenerateAllDirtChunk(x, y int, force bool) {
-	newChunk := NewChunk(x, y, 16, 16, "grass")
+func (m *Map) GenerateAllDirtChunk(win *opengl.Window, x, y int, force bool, g *Game) {
+	newChunk := NewChunk(win, x, y, 16, 16, "grass", g)
 
 	_, yExists := m.Chunks[y]
 	if !yExists {
@@ -112,24 +112,14 @@ func (m *Map) RefreshDrawBatch() {
 						continue
 					}
 
-					// where the chunks are draw from top left
-					chunkOffsetX := x * 256
-					chunkOffsetY := y * 256
-
-					// where the tiles are drawn relative to the chunks top-left position
-					tileX := chunkOffsetX + float64(tx*16)
-					tileY := chunkOffsetY + float64(ty*16)
-
-					tilePosition := pixel.V(float64(tileX), float64(tileY))
-
 					// add tile to batch
 					for i := 0; i < len(tiles); i++ {
 						tile := tiles[i]
 						if tile.Type == BlockTypeTree {
-							treeTops = append(treeTops, tilePosition)
-							m.Tiles[BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tilePosition))
+							treeTops = append(treeTops, tile.GetPosition())
+							m.Tiles[BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tile.GetPosition()))
 						} else {
-							m.Tiles[tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tilePosition))
+							m.Tiles[tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tile.GetPosition()))
 						}
 					}
 				}

@@ -1,5 +1,10 @@
 package game
 
+import (
+	"github.com/gopxl/pixel/v2"
+	"github.com/gopxl/pixel/v2/backends/opengl"
+)
+
 const (
 	BlockTypeDirt          byte = 0
 	BlockTypeDirtFrameDirt byte = 0
@@ -17,13 +22,49 @@ const (
 )
 
 type Block struct {
-	Type  byte
-	Frame byte
+	Position  pixel.Vec
+	Type      byte
+	Frame     byte
+	DebugRect *pixel.Sprite
 }
 
-func NewBlock(blockType, frame byte) *Block {
+func NewBlock(win *opengl.Window, blockType, frame byte, pos pixel.Vec) *Block {
 	return &Block{
-		Type:  blockType,
-		Frame: frame,
+		Type:      blockType,
+		Frame:     frame,
+		Position:  pos,
+		DebugRect: MakeDebugRect(win, 16, 16),
 	}
+}
+
+func (b *Block) GetPosition() pixel.Vec {
+	return b.Position
+}
+
+func (b *Block) GetSize() pixel.Vec {
+	return pixel.V(16, 16)
+}
+
+func (b *Block) Collide(c Collideable) {
+
+}
+
+func (b *Block) IsSolid() bool {
+	if b.Type == BlockTypeTree {
+		return true
+	}
+
+	return false
+}
+
+func (b *Block) GetType() byte {
+	return CollideableTypeBlock
+}
+
+func (b *Block) GetOldPosition() pixel.Vec {
+	return b.Position
+}
+
+func (b *Block) DrawDebug(win *opengl.Window) {
+	b.DebugRect.Draw(win, pixel.IM.Moved(b.Position))
 }

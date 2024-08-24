@@ -6,13 +6,15 @@ import (
 )
 
 type Game struct {
-	Map    *Map
-	Player *Player
-	Camera *Camera
+	Map                   *Map
+	Player                *Player
+	Camera                *Camera
+	Collideables          []Collideable // list of objects to check for collision
+	CollideablesDrawDebug bool
 }
 
-func NewGame(name string) (*Game, error) {
-	p, err := NewPlayer()
+func NewGame(name string, win *opengl.Window) (*Game, error) {
+	p, err := NewPlayer(win)
 	if err != nil {
 		return nil, err
 	}
@@ -23,19 +25,25 @@ func NewGame(name string) (*Game, error) {
 	}
 
 	return &Game{
-		Map:    m,
-		Player: p,
-		Camera: NewCamera(),
+		Map:          m,
+		Player:       p,
+		Camera:       NewCamera(),
+		Collideables: []Collideable{},
 	}, nil
 }
 
+func (g *Game) Init() {
+	g.AddCollideable(g.Player)
+}
+
 func (g *Game) Update(win *opengl.Window, dt float64) {
-	// generate chunks as player walks around
 	g.Map.ChunkPosition = g.Player.GetChunkPosition()
-	g.Map.GenerateChunksAroundPlayer()
+	g.Map.GenerateChunksAroundPlayer(g, win)
 
 	g.Player.Update(win, dt)
 	g.Camera.Update(g.Player.Position)
+
+	g.CheckCollisions()
 }
 
 func (g *Game) Draw(win *opengl.Window) {
@@ -55,4 +63,47 @@ func (g *Game) Draw(win *opengl.Window) {
 	g.Player.Draw(win)
 
 	g.Map.TreeBatchTop.Draw(win)
+
+	// debug
+	if g.CollideablesDrawDebug {
+		for i := 0; i < len(g.Collideables); i++ {
+			g.Collideables[i].DrawDebug(win)
+		}
+	}
+}
+
+func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {
+
+}
+
+func (g *Game) CharCallback(r rune) {
+	if r == ']' {
+		g.CollideablesDrawDebug = !g.CollideablesDrawDebug
+	}
+}
+
+func (g *Game) AddCollideable(c Collideable) {
+	g.Collideables = append(g.Collideables, c)
+}
+
+func (g *Game) CheckCollisions() {
+	for i := 0; i < len(g.Collideables); i++ {
+		for x := 0; x < len(g.Collideables); x++ {
+			if x == i {
+				continue
+			}
+
+			first := g.Collideables[i]
+			second := g.Collideables[x]
+
+			if !first.IsSolid() || !second.IsSolid() {
+				continue
+			}
+
+			if CollisionBBox(first.GetPosition(), first.GetSize(), second.GetPosition(), second.GetSize()) {
+				first.Collide(second)
+				second.Collide(first)
+			}
+		}
+	}
 }

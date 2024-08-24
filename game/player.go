@@ -17,18 +17,22 @@ const (
 )
 
 type Player struct {
-	Position          pixel.Vec
-	Speed             map[byte]float64 // pixels per second
-	WalkingOrRunning  byte
-	Spritesheet       *Spritesheet
-	Frames            map[byte][]*pixel.Sprite
-	FrameSpeed        map[byte]float64
-	CurrentFrame      float64
-	MaxMovementFrame  float64
-	MovementDirection byte
+	Position           pixel.Vec
+	OldPosition        pixel.Vec
+	Speed              map[byte]float64 // pixels per second
+	WalkingOrRunning   byte
+	Spritesheet        *Spritesheet
+	Frames             map[byte][]*pixel.Sprite
+	FrameSpeed         map[byte]float64
+	CurrentFrame       float64
+	MaxMovementFrame   float64
+	MovementDirection  byte
+	MovementDirections []byte
+	Solid              bool
+	DebugRect          *pixel.Sprite
 }
 
-func NewPlayer() (*Player, error) {
+func NewPlayer(win *opengl.Window) (*Player, error) {
 	s, err := NewSpritesheet("./assets/player/character.png")
 	if err != nil {
 		return nil, err
@@ -75,43 +79,106 @@ func NewPlayer() (*Player, error) {
 			PlayerWalking: 4,
 			PlayerRunning: 8,
 		}, // change frame this many times per second
-		CurrentFrame:     0,
-		MaxMovementFrame: 4,
+		CurrentFrame:       0,
+		MaxMovementFrame:   4,
+		Solid:              true,
+		DebugRect:          MakeDebugRect(win, 16, 16),
+		MovementDirections: []byte{},
 	}, nil
+}
+
+func (p *Player) AddMovementDirection(d byte) {
+	// only add if its not in
+	for _, oldDir := range p.MovementDirections {
+		if oldDir == d {
+			return
+		}
+	}
+
+	p.MovementDirections = append(p.MovementDirections, d)
+}
+
+func (p *Player) RemoveMovementDirection(d byte) {
+	if len(p.MovementDirections) == 0 {
+		return
+	}
+
+	// only add if its not in
+	for i, oldDir := range p.MovementDirections {
+		if oldDir == d {
+			p.MovementDirections = append(p.MovementDirections[:i], p.MovementDirections[i+1:]...)
+			return
+		}
+	}
+}
+
+func (p *Player) IsMovingInDirection(d byte) bool {
+	for _, oldDir := range p.MovementDirections {
+		if oldDir == d {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *Player) Update(win *opengl.Window, dt float64) {
 	if win.Pressed(pixel.KeyA) {
-		if win.Pressed(pixel.KeyW) {
-			p.Position.Y += p.Speed[p.WalkingOrRunning] / 2 * dt
-			p.MovementDirection = PlayerDirectionUp
-		} else if win.Pressed(pixel.KeyS) {
-			p.Position.Y -= p.Speed[p.WalkingOrRunning] / 2 * dt
-			p.MovementDirection = PlayerDirectionDown
-		}
-		p.Position.X -= p.Speed[p.WalkingOrRunning] * dt
-		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
-		p.MovementDirection = PlayerDirectionLeft
-	} else if win.Pressed(pixel.KeyD) {
-		if win.Pressed(pixel.KeyW) {
-			p.Position.Y += p.Speed[p.WalkingOrRunning] / 2 * dt
-			p.MovementDirection = PlayerDirectionUp
-		} else if win.Pressed(pixel.KeyS) {
-			p.Position.Y -= p.Speed[p.WalkingOrRunning] / 2 * dt
-			p.MovementDirection = PlayerDirectionDown
-		}
-		p.Position.X += p.Speed[p.WalkingOrRunning] * dt
-		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
-		p.MovementDirection = PlayerDirectionRight
-	} else if win.Pressed(pixel.KeyS) {
-		p.Position.Y -= p.Speed[p.WalkingOrRunning] * dt
-		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
-		p.MovementDirection = PlayerDirectionDown
-	} else if win.Pressed(pixel.KeyW) {
-		p.Position.Y += p.Speed[p.WalkingOrRunning] * dt
-		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
-		p.MovementDirection = PlayerDirectionUp
+		p.AddMovementDirection(PlayerDirectionLeft)
+	} else {
+		p.RemoveMovementDirection(PlayerDirectionLeft)
 	}
+
+	if win.Pressed(pixel.KeyD) {
+		p.AddMovementDirection(PlayerDirectionRight)
+	} else {
+		p.RemoveMovementDirection(PlayerDirectionRight)
+	}
+
+	if win.Pressed(pixel.KeyW) {
+		p.AddMovementDirection(PlayerDirectionUp)
+	} else {
+		p.RemoveMovementDirection(PlayerDirectionUp)
+	}
+
+	if win.Pressed(pixel.KeyS) {
+		p.AddMovementDirection(PlayerDirectionDown)
+	} else {
+		p.RemoveMovementDirection(PlayerDirectionDown)
+	}
+
+	p.OldPosition = p.Position
+
+	if p.IsMovingInDirection(PlayerDirectionUp) {
+		p.MovementDirection = PlayerDirectionUp
+
+		p.Position.Y += p.Speed[p.WalkingOrRunning] * dt
+		if p.IsMovingInDirection(PlayerDirectionLeft) {
+			p.Position.X -= p.Speed[p.WalkingOrRunning] / 2 * dt
+		} else if p.IsMovingInDirection(PlayerDirectionRight) {
+			p.Position.X += p.Speed[p.WalkingOrRunning] / 2 * dt
+		}
+	} else if p.IsMovingInDirection(PlayerDirectionDown) {
+		p.MovementDirection = PlayerDirectionDown
+
+		p.Position.Y -= p.Speed[p.WalkingOrRunning] * dt
+		if p.IsMovingInDirection(PlayerDirectionLeft) {
+			p.Position.X -= p.Speed[p.WalkingOrRunning] / 2 * dt
+		} else if p.IsMovingInDirection(PlayerDirectionRight) {
+			p.Position.X += p.Speed[p.WalkingOrRunning] / 2 * dt
+		}
+	} else if p.IsMovingInDirection(PlayerDirectionLeft) {
+		p.MovementDirection = PlayerDirectionLeft
+		p.Position.X -= p.Speed[p.WalkingOrRunning] * dt
+	} else if p.IsMovingInDirection(PlayerDirectionRight) {
+		p.MovementDirection = PlayerDirectionRight
+		p.Position.X += p.Speed[p.WalkingOrRunning] * dt
+	}
+
+	if len(p.MovementDirections) > 0 {
+		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
+	}
+
 	if win.Pressed(pixel.KeyLeftControl) {
 		p.WalkingOrRunning = PlayerRunning
 	} else {
@@ -134,4 +201,47 @@ func (p *Player) GetChunkPosition() pixel.Vec {
 	y := math.Floor(p.Position.Y / 256)
 
 	return pixel.V(x, y)
+}
+
+func (p *Player) GetPosition() pixel.Vec {
+	return p.Position
+}
+
+func (p *Player) GetSize() pixel.Vec {
+	return pixel.V(16, 16)
+}
+
+func (p *Player) Collide(c Collideable) {
+	if c.GetType() == CollideableTypeBlock {
+		d := GetCollisionDirection(p, c)
+
+		pos2 := c.GetPosition()
+		size2 := c.GetSize()
+
+		if d == CollisionDirectionUp {
+			p.Position.Y = pos2.Y - 16
+		} else if d == CollisionDirectionDown {
+			p.Position.Y = pos2.Y + size2.Y
+		} else if d == CollisionDirectionLeft {
+			p.Position.X = pos2.X + size2.X
+		} else if d == CollisionDirectionRight {
+			p.Position.X = pos2.X - 16
+		}
+	}
+}
+
+func (p *Player) IsSolid() bool {
+	return p.Solid
+}
+
+func (p *Player) GetType() byte {
+	return CollideableTypePlayer
+}
+
+func (p *Player) GetOldPosition() pixel.Vec {
+	return p.OldPosition
+}
+
+func (p *Player) DrawDebug(win *opengl.Window) {
+	p.DebugRect.Draw(win, pixel.IM.Moved(p.Position))
 }

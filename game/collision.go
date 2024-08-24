@@ -22,7 +22,7 @@ func CollisionBBox(pos1, size1, pos2, size2 pixel.Vec) bool {
 func GetCollisionDirection(c1, c2 Collideable) byte {
 	pos1 := c1.GetPosition()
 	pos2 := c2.GetPosition()
-	
+
 	disX := math.Abs(pos1.X - pos2.X)
 	disY := math.Abs(pos1.Y - pos2.Y)
 

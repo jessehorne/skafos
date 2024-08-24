@@ -14,7 +14,7 @@ type Map struct {
 	TreeBatchTop    *pixel.Batch
 	DrawRadius      float64   // how many chunks around the current center chunk should be drawn
 	ChunkPosition   pixel.Vec // the current center chunk
-	Tiles           map[byte]*pixel.Sprite
+	Tiles           map[byte]map[byte]*pixel.Sprite
 }
 
 func NewMap(name string) (*Map, error) {
@@ -32,15 +32,27 @@ func NewMap(name string) (*Map, error) {
 		FloorBatch:      pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
 		TreeBatchBottom: pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
 		TreeBatchTop:    pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
-		Tiles: map[byte]*pixel.Sprite{
-			BlockTypeDirtFrameDirt:        pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame1:          pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame2:          pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame3:          pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
-			BlockTypeGrassFrame4:          pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
-			BlockTypeTreeFrameSapling:     pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-4*16, 16, s.Picture.Bounds().H()-5*16)),
-			BlockTypeTreeFrameGrownTop:    pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-4*16, 3*16, s.Picture.Bounds().H()-6*16)),
-			BlockTypeTreeFrameGrownBottom: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H()-4*16, 5*16, s.Picture.Bounds().H()-6*16)),
+		Tiles: map[byte]map[byte]*pixel.Sprite{
+			BlockTypeDirt: {
+				BlockTypeDirtFrameDirt: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
+			},
+			BlockTypeGrass: {
+				BlockTypeGrassFrame1: pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
+				BlockTypeGrassFrame2: pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
+				BlockTypeGrassFrame3: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
+				BlockTypeGrassFrame4: pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
+			},
+			BlockTypeTree: {
+				BlockTypeTreeFrameSapling:     pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-4*16, 16, s.Picture.Bounds().H()-5*16)),
+				BlockTypeTreeFrameGrownTop:    pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-4*16, 3*16, s.Picture.Bounds().H()-6*16)),
+				BlockTypeTreeFrameGrownBottom: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H()-4*16, 5*16, s.Picture.Bounds().H()-6*16)),
+			},
+			BlockTypeStone: {
+				BlockTypeStoneFrame1: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-2*16, 16, s.Picture.Bounds().H()-3*16)),
+			},
+			BlockTypeCopper: {
+				BlockTypeCopperFrame1: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-3*16, 16, s.Picture.Bounds().H()-4*16)),
+			},
 		},
 		DrawRadius:    4,
 		ChunkPosition: pixel.V(0, 0),
@@ -115,11 +127,12 @@ func (m *Map) RefreshDrawBatch() {
 					// add tile to batch
 					for i := 0; i < len(tiles); i++ {
 						tile := tiles[i]
+
 						if tile.Type == BlockTypeTree {
 							treeTops = append(treeTops, tile.GetPosition())
-							m.Tiles[BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tile.GetPosition()))
+							m.Tiles[BlockTypeTree][BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tile.GetPosition()))
 						} else {
-							m.Tiles[tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tile.GetPosition()))
+							m.Tiles[tile.Type][tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tile.GetPosition()))
 						}
 					}
 				}
@@ -129,7 +142,7 @@ func (m *Map) RefreshDrawBatch() {
 
 	// add tree tops to their batch
 	for i := len(treeTops) - 1; i >= 0; i-- {
-		m.Tiles[BlockTypeTreeFrameGrownTop].Draw(m.TreeBatchTop, pixel.IM.Moved(treeTops[i]))
+		m.Tiles[BlockTypeTree][BlockTypeTreeFrameGrownTop].Draw(m.TreeBatchTop, pixel.IM.Moved(treeTops[i]))
 	}
 }
 

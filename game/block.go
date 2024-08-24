@@ -6,19 +6,26 @@ import (
 )
 
 const (
-	BlockTypeDirt          byte = 0
+	BlockTypeDirt   byte = 0
+	BlockTypeGrass  byte = 1
+	BlockTypeTree   byte = 2
+	BlockTypeStone  byte = 3
+	BlockTypeCopper byte = 4
+
 	BlockTypeDirtFrameDirt byte = 0
 
-	BlockTypeGrass       byte = 1
-	BlockTypeGrassFrame1 byte = 1
-	BlockTypeGrassFrame2 byte = 2
-	BlockTypeGrassFrame3 byte = 3
-	BlockTypeGrassFrame4 byte = 4
+	BlockTypeGrassFrame1 byte = 0
+	BlockTypeGrassFrame2 byte = 1
+	BlockTypeGrassFrame3 byte = 2
+	BlockTypeGrassFrame4 byte = 3
 
-	BlockTypeTree                 byte = 2
-	BlockTypeTreeFrameSapling     byte = 5
-	BlockTypeTreeFrameGrownTop    byte = 6
-	BlockTypeTreeFrameGrownBottom byte = 7
+	BlockTypeTreeFrameSapling     byte = 0
+	BlockTypeTreeFrameGrownTop    byte = 1
+	BlockTypeTreeFrameGrownBottom byte = 2
+
+	BlockTypeStoneFrame1 byte = 0
+
+	BlockTypeCopperFrame1 byte = 0
 )
 
 type Block struct {

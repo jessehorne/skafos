@@ -84,7 +84,7 @@ func (g *Game) Draw(win *opengl.Window) {
 }
 
 func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {
-
+	g.Player.ButtonCallback(btn, action)
 }
 
 func (g *Game) CharCallback(r rune) {

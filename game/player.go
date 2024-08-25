@@ -23,6 +23,7 @@ type Player struct {
 	WalkingOrRunning   byte
 	Spritesheet        *Spritesheet
 	Frames             map[byte][]*pixel.Sprite
+	SwingFrames        map[byte][]*pixel.Sprite
 	FrameSpeed         map[byte]float64
 	CurrentFrame       float64
 	MaxMovementFrame   float64
@@ -30,6 +31,8 @@ type Player struct {
 	MovementDirections []byte
 	Solid              bool
 	DebugRect          *pixel.Sprite
+	IsSwinging         bool
+	SwingFrameSpeed    float64
 }
 
 func NewPlayer(win *opengl.Window) (*Player, error) {
@@ -75,6 +78,33 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 				pixel.NewSprite(s.Picture, pixel.R(3*16, h, 4*16, h-(32))),
 			},
 		},
+		SwingFrames: map[byte][]*pixel.Sprite{
+			PlayerDirectionDown: []*pixel.Sprite{
+				pixel.NewSprite(s.Picture, pixel.R(0, h-(4*32), 32, h-(5*32))),
+				pixel.NewSprite(s.Picture, pixel.R(32, h-(4*32), 2*32, h-(5*32))),
+				pixel.NewSprite(s.Picture, pixel.R(2*32, h-(4*32), 3*32, h-(5*32))),
+				pixel.NewSprite(s.Picture, pixel.R(3*32, h-(4*32), 4*32, h-(5*32))),
+			},
+			PlayerDirectionUp: []*pixel.Sprite{
+				pixel.NewSprite(s.Picture, pixel.R(0, h-(5*32), 32, h-(6*32))),
+				pixel.NewSprite(s.Picture, pixel.R(32, h-(5*32), 2*32, h-(6*32))),
+				pixel.NewSprite(s.Picture, pixel.R(2*32, h-(5*32), 3*32, h-(6*32))),
+				pixel.NewSprite(s.Picture, pixel.R(3*32, h-(5*32), 4*32, h-(6*32))),
+			},
+			PlayerDirectionRight: []*pixel.Sprite{
+				pixel.NewSprite(s.Picture, pixel.R(0, h-(6*32), 32, h-(7*32))),
+				pixel.NewSprite(s.Picture, pixel.R(32, h-(6*32), 2*32, h-(7*32))),
+				pixel.NewSprite(s.Picture, pixel.R(2*32, h-(6*32), 3*32, h-(7*32))),
+				pixel.NewSprite(s.Picture, pixel.R(3*32, h-(6*32), 4*32, h-(7*32))),
+			},
+			PlayerDirectionLeft: []*pixel.Sprite{
+				pixel.NewSprite(s.Picture, pixel.R(0, h-(7*32), 32, h-(8*32))),
+				pixel.NewSprite(s.Picture, pixel.R(32, h-(7*32), 2*32, h-(8*32))),
+				pixel.NewSprite(s.Picture, pixel.R(2*32, h-(7*32), 3*32, h-(8*32))),
+				pixel.NewSprite(s.Picture, pixel.R(3*32, h-(7*32), 4*32, h-(8*32))),
+			},
+		},
+		SwingFrameSpeed: 20,
 		FrameSpeed: map[byte]float64{
 			PlayerWalking: 4,
 			PlayerRunning: 8,
@@ -175,8 +205,12 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 		p.Position.X += p.Speed[p.WalkingOrRunning] * dt
 	}
 
-	if len(p.MovementDirections) > 0 {
+	if len(p.MovementDirections) > 0 && !p.IsSwinging {
 		p.CurrentFrame += p.FrameSpeed[p.WalkingOrRunning] * dt
+	}
+
+	if p.IsSwinging {
+		p.CurrentFrame += p.SwingFrameSpeed * dt
 	}
 
 	if win.Pressed(pixel.KeyLeftControl) {
@@ -186,6 +220,9 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 	}
 
 	if p.CurrentFrame > p.MaxMovementFrame {
+		if p.IsSwinging {
+			p.IsSwinging = !p.IsSwinging
+		}
 		p.CurrentFrame = 0
 	}
 }
@@ -193,7 +230,11 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 func (p *Player) Draw(win *opengl.Window) {
 	currentFrame := int(math.Floor(p.CurrentFrame))
 
-	p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
+	if p.IsSwinging {
+		p.SwingFrames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
+	} else {
+		p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
+	}
 }
 
 func (p *Player) GetChunkPosition() pixel.Vec {
@@ -244,4 +285,11 @@ func (p *Player) GetOldPosition() pixel.Vec {
 
 func (p *Player) DrawDebug(win *opengl.Window) {
 	p.DebugRect.Draw(win, pixel.IM.Moved(p.Position))
+}
+
+func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
+	if btn == pixel.MouseButtonLeft && action == pixel.Press {
+		p.CurrentFrame = 0
+		p.IsSwinging = true
+	}
 }

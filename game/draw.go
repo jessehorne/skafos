@@ -4,6 +4,7 @@ import (
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"image"
+	"image/color"
 )
 
 var (
@@ -27,6 +28,18 @@ func DrawVLine(img *image.RGBA, x, y1, y2 int) {
 	for ; y1 <= y2; y1++ {
 		img.Set(x, y1, DrawColor)
 	}
+}
+
+func MakeRect(w, h int, c color.Color) (*image.RGBA, *pixel.Sprite) {
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+
+	for yy := 0; yy < h; yy++ {
+		for xx := 0; xx < w; xx++ {
+			img.Set(xx, yy, c)
+		}
+	}
+
+	return img, pixel.NewSprite(pixel.PictureDataFromImage(img), pixel.R(0, 0, float64(w), float64(h)))
 }
 
 // Rect draws a rectangle utilizing HLine() and VLine()

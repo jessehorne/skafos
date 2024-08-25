@@ -11,6 +11,7 @@ type Game struct {
 	Camera                *Camera
 	Collideables          []Collideable // list of objects to check for collision
 	CollideablesDrawDebug bool
+	GUI                   *GUI
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
@@ -24,11 +25,17 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		return nil, err
 	}
 
+	gui, err := NewGUI(win)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Game{
 		Map:          m,
 		Player:       p,
 		Camera:       NewCamera(),
 		Collideables: []Collideable{},
+		GUI:          gui,
 	}, nil
 }
 
@@ -70,6 +77,10 @@ func (g *Game) Draw(win *opengl.Window) {
 			g.Collideables[i].DrawDebug(win)
 		}
 	}
+
+	win.SetMatrix(pixel.IM)
+
+	g.GUI.Draw()
 }
 
 func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {

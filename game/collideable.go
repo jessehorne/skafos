@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	CollideableTypeBlock  byte = 1
-	CollideableTypePlayer byte = 2
+	CollideableTypeBlock   byte = 0
+	CollideableTypePlayer  byte = 1
+	CollideableTypeFloater byte = 2
 )
 
 type Collideable interface {

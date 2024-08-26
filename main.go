@@ -47,7 +47,7 @@ func run() {
 		log.Fatalln(err)
 	}
 
-	g.Init()
+	g.Init(win)
 	g.Map.RefreshDrawBatch()
 	g.CollideablesDrawDebug = true
 

@@ -12,6 +12,7 @@ type Game struct {
 	Collideables          []Collideable // list of objects to check for collision
 	CollideablesDrawDebug bool
 	GUI                   *GUI
+	Floaters              []*Floater
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
@@ -38,18 +39,29 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		Camera:       camera,
 		Collideables: []Collideable{},
 		GUI:          gui,
+		Floaters:     []*Floater{},
 	}
 
 	return g, nil
 }
 
-func (g *Game) Init() {
+func (g *Game) Init(win *opengl.Window) {
 	g.AddCollideable(g.Player)
+
+	// add an example floater at 50, 50
+	dirt := g.Map.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt]
+	f := NewFloater(win, FloaterTypeDirt, pixel.V(50, 50), dirt)
+	g.Floaters = append(g.Floaters, f)
+	g.AddCollideable(f)
 }
 
 func (g *Game) Update(win *opengl.Window, dt float64) {
 	g.Map.ChunkPosition = g.Player.GetChunkPosition()
 	g.Map.GenerateChunksAroundPlayer(g, win)
+
+	for _, f := range g.Floaters {
+		f.Update(dt)
+	}
 
 	g.Player.Update(win, dt)
 	g.Camera.Update(g.Player.Position)
@@ -68,6 +80,11 @@ func (g *Game) Draw(win *opengl.Window) {
 	g.Map.RefreshDrawBatch()
 	g.Map.FloorBatch.Draw(win)
 	g.Map.TreeBatchBottom.Draw(win)
+
+	// draw floaters
+	for _, f := range g.Floaters {
+		f.Draw(win)
+	}
 
 	// draw player
 	g.Player.Draw(win, g.GUI)

@@ -2,6 +2,7 @@ package game
 
 import (
 	"github.com/gopxl/pixel/v2"
+	"github.com/gopxl/pixel/v2/backends/opengl"
 )
 
 type Camera struct {
@@ -22,4 +23,13 @@ func NewCamera() *Camera {
 
 func (c *Camera) Update(pos pixel.Vec) {
 	c.Position = pos
+}
+
+func (c *Camera) StartCamera(win *opengl.Window) {
+	camera := pixel.IM.Scaled(c.Position, c.Zoom).Moved(win.Bounds().Center().Sub(c.Position))
+	win.SetMatrix(camera)
+}
+
+func (c *Camera) EndCamera(win *opengl.Window) {
+	win.SetMatrix(pixel.IM)
 }

@@ -17,22 +17,26 @@ const (
 )
 
 type Player struct {
-	Position           pixel.Vec
-	OldPosition        pixel.Vec
-	Speed              map[byte]float64 // pixels per second
-	WalkingOrRunning   byte
-	Spritesheet        *Spritesheet
-	Frames             map[byte][]*pixel.Sprite
-	SwingFrames        map[byte][]*pixel.Sprite
-	FrameSpeed         map[byte]float64
-	CurrentFrame       float64
-	MaxMovementFrame   float64
-	MovementDirection  byte
-	MovementDirections []byte
-	Solid              bool
-	DebugRect          *pixel.Sprite
-	IsSwinging         bool
-	SwingFrameSpeed    float64
+	Position            pixel.Vec
+	OldPosition         pixel.Vec
+	Speed               map[byte]float64 // pixels per second
+	WalkingOrRunning    byte
+	Spritesheet         *Spritesheet
+	Frames              map[byte][]*pixel.Sprite
+	SwingFrames         map[byte][]*pixel.Sprite
+	FrameSpeed          map[byte]float64
+	Inventory           map[int]map[int]*Item
+	InventoryW          int
+	InventoryH          int
+	ShouldDrawInventory bool
+	CurrentFrame        float64
+	MaxMovementFrame    float64
+	MovementDirection   byte
+	MovementDirections  []byte
+	Solid               bool
+	DebugRect           *pixel.Sprite
+	IsSwinging          bool
+	SwingFrameSpeed     float64
 }
 
 func NewPlayer(win *opengl.Window) (*Player, error) {
@@ -44,7 +48,7 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	//w := s.Picture.Bounds().W()
 	h := s.Picture.Bounds().H()
 
-	return &Player{
+	p := &Player{
 		Position: pixel.V(0, 0),
 		Speed: map[byte]float64{
 			PlayerWalking: 32,
@@ -109,12 +113,20 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 			PlayerWalking: 4,
 			PlayerRunning: 8,
 		}, // change frame this many times per second
-		CurrentFrame:       0,
-		MaxMovementFrame:   4,
-		Solid:              true,
-		DebugRect:          MakeDebugRect(win, 16, 16),
-		MovementDirections: []byte{},
-	}, nil
+		CurrentFrame:        0,
+		MaxMovementFrame:    4,
+		Solid:               true,
+		DebugRect:           MakeDebugRect(win, 16, 16),
+		MovementDirections:  []byte{},
+		Inventory:           map[int]map[int]*Item{},
+		InventoryW:          8,
+		InventoryH:          5,
+		ShouldDrawInventory: false,
+	}
+
+	p.ClearInventory()
+
+	return p, nil
 }
 
 func (p *Player) AddMovementDirection(d byte) {
@@ -227,7 +239,7 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 	}
 }
 
-func (p *Player) Draw(win *opengl.Window) {
+func (p *Player) Draw(win *opengl.Window, gui *GUI) {
 	currentFrame := int(math.Floor(p.CurrentFrame))
 
 	if p.IsSwinging {
@@ -235,6 +247,8 @@ func (p *Player) Draw(win *opengl.Window) {
 	} else {
 		p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
 	}
+
+	gui.SetHotbarItems(p.Inventory[p.InventoryH-1])
 }
 
 func (p *Player) GetChunkPosition() pixel.Vec {
@@ -289,7 +303,25 @@ func (p *Player) DrawDebug(win *opengl.Window) {
 
 func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
 	if btn == pixel.MouseButtonLeft && action == pixel.Press {
-		p.CurrentFrame = 0
-		p.IsSwinging = true
+		if !p.IsSwinging {
+			p.CurrentFrame = 0
+			p.IsSwinging = true
+		}
+	}
+}
+
+func (p *Player) ClearInventory() {
+	for y := 0; y < p.InventoryH; y++ {
+		for x := 0; x < p.InventoryW; x++ {
+			_, yExists := p.Inventory[y]
+			if !yExists {
+				p.Inventory[y] = map[int]*Item{}
+			}
+
+			_, xExists := p.Inventory[y][x]
+			if !xExists {
+				p.Inventory[y][x] = nil
+			}
+		}
 	}
 }

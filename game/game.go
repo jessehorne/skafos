@@ -25,18 +25,22 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		return nil, err
 	}
 
-	gui, err := NewGUI(win)
+	camera := NewCamera()
+
+	gui, err := NewGUI(win, camera)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Game{
+	g := &Game{
 		Map:          m,
 		Player:       p,
-		Camera:       NewCamera(),
+		Camera:       camera,
 		Collideables: []Collideable{},
 		GUI:          gui,
-	}, nil
+	}
+
+	return g, nil
 }
 
 func (g *Game) Init() {
@@ -54,8 +58,7 @@ func (g *Game) Update(win *opengl.Window, dt float64) {
 }
 
 func (g *Game) Draw(win *opengl.Window) {
-	cam := pixel.IM.Scaled(g.Camera.Position, g.Camera.Zoom).Moved(win.Bounds().Center().Sub(g.Camera.Position))
-	win.SetMatrix(cam)
+	g.Camera.StartCamera(win)
 
 	// draw map
 	g.Map.FloorBatch.Clear()
@@ -67,7 +70,7 @@ func (g *Game) Draw(win *opengl.Window) {
 	g.Map.TreeBatchBottom.Draw(win)
 
 	// draw player
-	g.Player.Draw(win)
+	g.Player.Draw(win, g.GUI)
 
 	g.Map.TreeBatchTop.Draw(win)
 
@@ -78,8 +81,9 @@ func (g *Game) Draw(win *opengl.Window) {
 		}
 	}
 
-	win.SetMatrix(pixel.IM)
+	g.Camera.EndCamera(win)
 
+	g.GUI.SetInventoryItems(g.Player.Inventory)
 	g.GUI.Draw()
 }
 
@@ -90,6 +94,8 @@ func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {
 func (g *Game) CharCallback(r rune) {
 	if r == ']' {
 		g.CollideablesDrawDebug = !g.CollideablesDrawDebug
+	} else if r == 'i' {
+		g.GUI.ShouldDrawInventory = !g.GUI.ShouldDrawInventory
 	}
 }
 

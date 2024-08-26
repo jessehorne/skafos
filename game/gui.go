@@ -9,6 +9,7 @@ import (
 
 type GUI struct {
 	Window      *opengl.Window
+	Camera      *Camera
 	Spritesheet *Spritesheet
 	BarSprite   *pixel.Sprite
 
@@ -31,10 +32,16 @@ type GUI struct {
 	ThirstBarImage    *image.RGBA
 	ThirstBarSprite   *pixel.Sprite
 
+	ItemSprite *pixel.Sprite
+
 	NeedsRedraw bool
+
+	HotbarItems         map[int]*Item
+	Inventory           map[int]map[int]*Item
+	ShouldDrawInventory bool
 }
 
-func NewGUI(win *opengl.Window) (*GUI, error) {
+func NewGUI(win *opengl.Window, camera *Camera) (*GUI, error) {
 	s, err := NewSpritesheet("./assets/gui.png")
 	if err != nil {
 		return nil, err
@@ -46,8 +53,11 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 	hungerBarImage, hungerBarSprite := MakeRect(46, 4, colornames.Red)
 	thirstBarImage, thirstBarSprite := MakeRect(46, 4, colornames.Red)
 
+	itemSprite := pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-16, 16, s.Picture.Bounds().H()-2*16))
+
 	g := &GUI{
 		Window:      win,
+		Camera:      camera,
 		Spritesheet: s,
 		BarSprite:   barSprite,
 		OffsetX:     8 * 16,
@@ -65,6 +75,10 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 		Thirst:          100,
 		ThirstBarImage:  thirstBarImage,
 		ThirstBarSprite: thirstBarSprite,
+
+		ItemSprite: itemSprite,
+
+		Inventory: map[int]map[int]*Item{},
 	}
 
 	//g.HealthBarPosition = pixel.V(g.OffsetX, g.Window.Bounds().H()-g.OffsetY)
@@ -76,7 +90,15 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 }
 
 func (g *GUI) Draw() {
+	g.Camera.EndCamera(g.Window)
 	g.RedrawBars()
+	g.DrawHotbar()
+
+	if g.ShouldDrawInventory {
+		g.DrawInventory()
+	}
+
+	g.Camera.StartCamera(g.Window)
 }
 
 func (g *GUI) RedrawBars() {
@@ -145,4 +167,39 @@ func (g *GUI) UpdateThirst(v float64) {
 	g.ThirstBarSprite = pixel.NewSprite(pixel.PictureDataFromImage(g.ThirstBarImage), pixel.R(0, 0, 46, 4))
 
 	g.ThirstBarSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(g.ThirstBarPosition.Add(pixel.V(g.OffsetX-32, -g.OffsetY))))
+}
+
+func (g *GUI) DrawHotbar() {
+	for x, _ := range g.HotbarItems {
+		offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 16*g.Scale
+		// draw behind box
+		g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+float64(x)*16*g.Scale, 40)))
+	}
+}
+
+func (g *GUI) SetHotbarItems(items map[int]*Item) {
+	g.HotbarItems = items
+}
+
+func (g *GUI) DrawInventory() {
+	items := g.Inventory
+
+	for y := 0; y < len(items); y++ {
+		totalH := len(items) * 16 * int(g.Scale)
+		for x := 0; x < len(items[y]); x++ {
+			totalW := len(items[y]) * 16 * int(g.Scale)
+
+			offsetX := g.Window.Bounds().W()/2 - float64(totalW)/2 + (16 * g.Scale)
+			offsetY := g.Window.Bounds().H()/2 - float64(totalH)/2
+
+			posX := float64(x*16) * g.Scale
+			posY := float64(y*16) * g.Scale
+
+			g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+posX, offsetY+posY)))
+		}
+	}
+}
+
+func (g *GUI) SetInventoryItems(items map[int]map[int]*Item) {
+	g.Inventory = items
 }

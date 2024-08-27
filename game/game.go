@@ -16,19 +16,47 @@ type Game struct {
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
+	s, err := NewSpritesheet("./assets/tiles/all.png")
+	if err != nil {
+		return nil, err
+	}
+
+	tiles := map[byte]map[byte]*pixel.Sprite{
+		BlockTypeDirt: {
+			BlockTypeDirtFrameDirt: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
+		},
+		BlockTypeGrass: {
+			BlockTypeGrassFrame1: pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H(), 16*2, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame2: pixel.NewSprite(s.Picture, pixel.R(2*16, s.Picture.Bounds().H(), 3*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame3: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H(), 4*16, s.Picture.Bounds().H()-16)),
+			BlockTypeGrassFrame4: pixel.NewSprite(s.Picture, pixel.R(4*16, s.Picture.Bounds().H(), 5*16, s.Picture.Bounds().H()-16)),
+		},
+		BlockTypeTree: {
+			BlockTypeTreeFrameSapling:     pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-4*16, 16, s.Picture.Bounds().H()-5*16)),
+			BlockTypeTreeFrameGrownTop:    pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-4*16, 3*16, s.Picture.Bounds().H()-6*16)),
+			BlockTypeTreeFrameGrownBottom: pixel.NewSprite(s.Picture, pixel.R(3*16, s.Picture.Bounds().H()-4*16, 5*16, s.Picture.Bounds().H()-6*16)),
+		},
+		BlockTypeStone: {
+			BlockTypeStoneFrame1: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-2*16, 16, s.Picture.Bounds().H()-3*16)),
+		},
+		BlockTypeCopper: {
+			BlockTypeCopperFrame1: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-3*16, 16, s.Picture.Bounds().H()-4*16)),
+		},
+	}
+
 	p, err := NewPlayer(win)
 	if err != nil {
 		return nil, err
 	}
 
-	m, err := NewMap(name)
+	m, err := NewMap(name, s, tiles)
 	if err != nil {
 		return nil, err
 	}
 
 	camera := NewCamera()
 
-	gui, err := NewGUI(win, camera)
+	gui, err := NewGUI(win, camera, tiles)
 	if err != nil {
 		return nil, err
 	}

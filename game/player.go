@@ -25,7 +25,7 @@ type Player struct {
 	Frames              map[byte][]*pixel.Sprite
 	SwingFrames         map[byte][]*pixel.Sprite
 	FrameSpeed          map[byte]float64
-	Inventory           map[int]map[int]*Item
+	Inventory           [][]*InventoryItem
 	InventoryW          int
 	InventoryH          int
 	ShouldDrawInventory bool
@@ -118,13 +118,14 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 		Solid:               true,
 		DebugRect:           MakeDebugRect(win, 16, 16),
 		MovementDirections:  []byte{},
-		Inventory:           map[int]map[int]*Item{},
+		Inventory:           [][]*InventoryItem{},
 		InventoryW:          8,
 		InventoryH:          5,
 		ShouldDrawInventory: false,
 	}
 
 	p.ClearInventory()
+	p.AddInventoryItem(NewInventoryItem(BlockTypeDirt, 10, pixel.V(0, 0)))
 
 	return p, nil
 }
@@ -248,7 +249,7 @@ func (p *Player) Draw(win *opengl.Window, gui *GUI) {
 		p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
 	}
 
-	gui.SetHotbarItems(p.Inventory[p.InventoryH-1])
+	gui.SetHotbarItems(p.Inventory[0])
 }
 
 func (p *Player) GetChunkPosition() pixel.Vec {
@@ -311,17 +312,19 @@ func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
 }
 
 func (p *Player) ClearInventory() {
-	for y := 0; y < p.InventoryH; y++ {
-		for x := 0; x < p.InventoryW; x++ {
-			_, yExists := p.Inventory[y]
-			if !yExists {
-				p.Inventory[y] = map[int]*Item{}
+	p.Inventory = [][]*InventoryItem{}
+
+	for y := 0; y <= p.InventoryH; y++ {
+		for x := 0; x <= p.InventoryW; x++ {
+			if y == 0 {
+				p.Inventory = append(p.Inventory, []*InventoryItem{})
 			}
 
-			_, xExists := p.Inventory[y][x]
-			if !xExists {
-				p.Inventory[y][x] = nil
-			}
+			p.Inventory[y] = append(p.Inventory[y], nil)
 		}
 	}
+}
+
+func (p *Player) AddInventoryItem(i *InventoryItem) {
+	p.Inventory[int(i.Position.Y)][int(i.Position.X)] = i
 }

@@ -36,12 +36,14 @@ type GUI struct {
 
 	NeedsRedraw bool
 
-	HotbarItems         map[int]*Item
-	Inventory           map[int]map[int]*Item
+	HotbarItems         []*InventoryItem
+	Inventory           [][]*InventoryItem
 	ShouldDrawInventory bool
+
+	Tiles map[byte]map[byte]*pixel.Sprite
 }
 
-func NewGUI(win *opengl.Window, camera *Camera) (*GUI, error) {
+func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.Sprite) (*GUI, error) {
 	s, err := NewSpritesheet("./assets/gui.png")
 	if err != nil {
 		return nil, err
@@ -78,7 +80,9 @@ func NewGUI(win *opengl.Window, camera *Camera) (*GUI, error) {
 
 		ItemSprite: itemSprite,
 
-		Inventory: map[int]map[int]*Item{},
+		Inventory: [][]*InventoryItem{},
+
+		Tiles: tiles,
 	}
 
 	//g.HealthBarPosition = pixel.V(g.OffsetX, g.Window.Bounds().H()-g.OffsetY)
@@ -170,14 +174,28 @@ func (g *GUI) UpdateThirst(v float64) {
 }
 
 func (g *GUI) DrawHotbar() {
-	for x, _ := range g.HotbarItems {
+	for x, i := range g.HotbarItems {
 		offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 16*g.Scale
 		// draw behind box
 		g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+float64(x)*16*g.Scale, 40)))
+
+		// draw items in players inventory if exists
+
+		if i != nil {
+			posX := i.Position.X * 16 * g.Scale
+			posY := 0.0
+
+			if i != nil {
+				if i.ItemType == BlockTypeDirt {
+					drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 2.0).Moved(pixel.V(offsetX+posX, 40+posY))
+					g.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt].Draw(g.Window, drawPos)
+				}
+			}
+		}
 	}
 }
 
-func (g *GUI) SetHotbarItems(items map[int]*Item) {
+func (g *GUI) SetHotbarItems(items []*InventoryItem) {
 	g.HotbarItems = items
 }
 
@@ -185,21 +203,34 @@ func (g *GUI) DrawInventory() {
 	items := g.Inventory
 
 	for y := 0; y < len(items); y++ {
-		totalH := len(items) * 16 * int(g.Scale)
+		if y == 0 {
+			continue
+		}
+		
 		for x := 0; x < len(items[y]); x++ {
-			totalW := len(items[y]) * 16 * int(g.Scale)
 
-			offsetX := g.Window.Bounds().W()/2 - float64(totalW)/2 + (16 * g.Scale)
-			offsetY := g.Window.Bounds().H()/2 - float64(totalH)/2
+			offsetY := 4.0
 
 			posX := float64(x*16) * g.Scale
 			posY := float64(y*16) * g.Scale
 
-			g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+posX, offsetY+posY)))
+			offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 16*g.Scale
+			// draw behind box
+			g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+float64(x)*16*g.Scale, 40+posY)))
+
+			// draw items in players inventory if exists
+			invItem := items[y][x]
+
+			if invItem != nil {
+				if invItem.ItemType == BlockTypeDirt {
+					drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 2.0).Moved(pixel.V(offsetX+posX, offsetY+posY))
+					g.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt].Draw(g.Window, drawPos)
+				}
+			}
 		}
 	}
 }
 
-func (g *GUI) SetInventoryItems(items map[int]map[int]*Item) {
+func (g *GUI) SetInventoryItems(items [][]*InventoryItem) {
 	g.Inventory = items
 }

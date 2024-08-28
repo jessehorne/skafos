@@ -3,6 +3,13 @@ package game
 import (
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
+	"github.com/gopxl/pixel/v2/ext/text"
+	"golang.org/x/image/font"
+)
+
+var (
+	Font  font.Face
+	Atlas *text.Atlas
 )
 
 type Game struct {
@@ -16,6 +23,16 @@ type Game struct {
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
+	face, err := loadTTF("./assets/font/munro.ttf", 24)
+	if err != nil {
+		return nil, err
+	}
+
+	atlas := text.NewAtlas(face, text.ASCII)
+
+	Font = face
+	Atlas = atlas
+
 	s, err := NewSpritesheet("./assets/tiles/all.png")
 	if err != nil {
 		return nil, err

@@ -182,15 +182,7 @@ func (g *GUI) DrawHotbar() {
 		// draw items in players inventory if exists
 
 		if i != nil {
-			posX := i.Position.X * 16 * g.Scale
-			posY := 0.0
-
-			if i != nil {
-				if i.ItemType == BlockTypeDirt {
-					drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 2.0).Moved(pixel.V(offsetX+posX, 40+posY))
-					g.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt].Draw(g.Window, drawPos)
-				}
-			}
+			i.Draw(g.Window, g.Tiles)
 		}
 	}
 }
@@ -206,15 +198,12 @@ func (g *GUI) DrawInventory() {
 		if y == 0 {
 			continue
 		}
-		
+
 		for x := 0; x < len(items[y]); x++ {
-
-			offsetY := 4.0
-
-			posX := float64(x*16) * g.Scale
 			posY := float64(y*16) * g.Scale
 
 			offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 16*g.Scale
+
 			// draw behind box
 			g.ItemSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(pixel.V(offsetX+float64(x)*16*g.Scale, 40+posY)))
 
@@ -222,10 +211,7 @@ func (g *GUI) DrawInventory() {
 			invItem := items[y][x]
 
 			if invItem != nil {
-				if invItem.ItemType == BlockTypeDirt {
-					drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 2.0).Moved(pixel.V(offsetX+posX, offsetY+posY))
-					g.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt].Draw(g.Window, drawPos)
-				}
+				invItem.Draw(g.Window, g.Tiles)
 			}
 		}
 	}

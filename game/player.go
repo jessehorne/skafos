@@ -125,7 +125,11 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	}
 
 	p.ClearInventory()
-	p.AddInventoryItem(NewInventoryItem(BlockTypeDirt, 10, pixel.V(0, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(0, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(1, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(3, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(4, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(5, 0)))
 
 	return p, nil
 }
@@ -326,5 +330,5 @@ func (p *Player) ClearInventory() {
 }
 
 func (p *Player) AddInventoryItem(i *InventoryItem) {
-	p.Inventory[int(i.Position.Y)][int(i.Position.X)] = i
+	p.Inventory[int(i.InventoryPosition.Y)][int(i.InventoryPosition.X)] = i
 }

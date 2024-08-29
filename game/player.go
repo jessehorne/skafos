@@ -17,6 +17,7 @@ const (
 )
 
 type Player struct {
+	Window              *opengl.Window
 	Position            pixel.Vec
 	OldPosition         pixel.Vec
 	Speed               map[byte]float64 // pixels per second
@@ -49,6 +50,7 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	h := s.Picture.Bounds().H()
 
 	p := &Player{
+		Window:   win,
 		Position: pixel.V(0, 0),
 		Speed: map[byte]float64{
 			PlayerWalking: 32,
@@ -287,6 +289,9 @@ func (p *Player) Collide(c Collideable) {
 		} else if d == CollisionDirectionRight {
 			p.Position.X = pos2.X - 16
 		}
+	} else if c.GetType() == CollideableTypeFloater {
+		f := c.(*Floater)
+		p.AddItemToInventory(f.ItemType)
 	}
 }
 
@@ -331,4 +336,41 @@ func (p *Player) ClearInventory() {
 
 func (p *Player) AddInventoryItem(i *InventoryItem) {
 	p.Inventory[int(i.InventoryPosition.Y)][int(i.InventoryPosition.X)] = i
+}
+
+func (p *Player) AddItemToInventory(itemType byte) {
+	var foundItem *InventoryItem
+	var found bool
+	var foundX int
+	var foundY int
+	for y := 0; y < len(p.Inventory); y++ {
+		for x := 0; x < len(p.Inventory[y]); x++ {
+			item := p.Inventory[y][x]
+			if item != nil {
+				if item.ItemType == itemType {
+					foundItem = item
+					break
+				}
+			} else {
+				if !found {
+					foundX = x
+					foundY = y
+					found = true
+				}
+			}
+		}
+
+		if foundItem != nil {
+			break
+		}
+	}
+
+	if foundItem != nil {
+		foundItem.Amount++
+	} else {
+		if found {
+			newInvItem := NewInventoryItem(p.Window, itemType, 1, pixel.V(float64(foundX), float64(foundY)))
+			p.Inventory[foundY][foundX] = newInvItem
+		}
+	}
 }

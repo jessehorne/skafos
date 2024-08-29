@@ -101,6 +101,19 @@ func (g *Game) Init(win *opengl.Window) {
 }
 
 func (g *Game) Update(win *opengl.Window, dt float64) {
+	// cleanup deleted floaters
+	for i, f := range g.Floaters {
+		if f.Deleted {
+			g.Floaters = append(g.Floaters[:i], g.Floaters[i+1:]...)
+
+			for x, c := range g.Collideables {
+				if f == c {
+					g.Collideables = append(g.Collideables[:x], g.Collideables[x+1:]...)
+				}
+			}
+		}
+	}
+
 	g.Map.ChunkPosition = g.Player.GetChunkPosition()
 	g.Map.GenerateChunksAroundPlayer(g, win)
 

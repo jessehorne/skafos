@@ -26,6 +26,7 @@ type Floater struct {
 	ScaleMin      float64
 	ScaleDir      float64
 	DebugRect     *pixel.Sprite
+	Deleted       bool
 }
 
 func NewFloater(win *opengl.Window, t byte, position pixel.Vec, sprite *pixel.Sprite) *Floater {
@@ -39,7 +40,7 @@ func NewFloater(win *opengl.Window, t byte, position pixel.Vec, sprite *pixel.Sp
 		ScaleMax:      0.5,
 		ScaleMin:      0.4,
 		ScaleDir:      0, // 0 == up & 1 == down
-		Solid:         false,
+		Solid:         true,
 		Sprite:        sprite,
 		RotationSpeed: 3,
 		Rotation:      0,
@@ -56,7 +57,9 @@ func (f *Floater) GetSize() pixel.Vec {
 }
 
 func (f *Floater) Collide(c Collideable) {
-
+	if c.GetType() == CollideableTypePlayer {
+		f.Deleted = true
+	}
 }
 
 func (f *Floater) IsSolid() bool {

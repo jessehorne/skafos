@@ -131,7 +131,7 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(1, 0)))
 	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(3, 0)))
 	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(4, 0)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(5, 0)))
+	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(5, 3)))
 
 	return p, nil
 }

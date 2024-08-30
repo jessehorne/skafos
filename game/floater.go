@@ -13,6 +13,7 @@ const (
 // When an item is dropped, it "floats" and rotates around on the ground until someone picks it up
 type Floater struct {
 	Position      pixel.Vec
+	Velocity      pixel.Vec
 	OldPosition   pixel.Vec
 	ItemType      byte
 	Size          pixel.Vec
@@ -29,9 +30,10 @@ type Floater struct {
 	Deleted       bool
 }
 
-func NewFloater(win *opengl.Window, t byte, position pixel.Vec, sprite *pixel.Sprite) *Floater {
-	return &Floater{
+func NewFloater(win *opengl.Window, t byte, position, velocity pixel.Vec) *Floater {
+	f := &Floater{
 		Position:      position,
+		Velocity:      velocity,
 		OldPosition:   position,
 		ItemType:      t,
 		Size:          pixel.V(8, 8),
@@ -40,12 +42,17 @@ func NewFloater(win *opengl.Window, t byte, position pixel.Vec, sprite *pixel.Sp
 		ScaleMax:      0.5,
 		ScaleMin:      0.4,
 		ScaleDir:      0, // 0 == up & 1 == down
-		Solid:         true,
-		Sprite:        sprite,
+		Solid:         false,
 		RotationSpeed: 3,
 		Rotation:      0,
 		DebugRect:     MakeDebugRect(win, 8, 8),
 	}
+
+	if t == BlockTypeDirt {
+		f.Sprite = Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt]
+	}
+
+	return f
 }
 
 func (f *Floater) GetPosition() pixel.Vec {
@@ -57,9 +64,7 @@ func (f *Floater) GetSize() pixel.Vec {
 }
 
 func (f *Floater) Collide(c Collideable) {
-	if c.GetType() == CollideableTypePlayer {
-		f.Deleted = true
-	}
+
 }
 
 func (f *Floater) IsSolid() bool {
@@ -90,6 +95,42 @@ func (f *Floater) Update(dt float64) {
 		f.ScaleDir = 1
 	} else if f.Scale <= f.ScaleMin {
 		f.ScaleDir = 0
+	}
+
+	f.Position = f.Position.Add(pixel.V(f.Velocity.X*dt, f.Velocity.Y*dt))
+
+	change := 90.0
+	diff := 0.02
+	if f.Velocity.X < 0 {
+		f.Velocity.X += change * dt
+
+		if f.Velocity.X > -diff {
+			f.Velocity.X = 0
+		}
+	} else if f.Velocity.X > 0 {
+		f.Velocity.X -= change * dt
+
+		if f.Velocity.X < diff {
+			f.Velocity.X = 0
+		}
+	}
+
+	if f.Velocity.Y < 0 {
+		f.Velocity.Y += change * dt
+
+		if f.Velocity.Y > -diff {
+			f.Velocity.Y = 0
+		}
+	} else if f.Velocity.Y > 0 {
+		f.Velocity.Y -= change * dt
+
+		if f.Velocity.Y < diff {
+			f.Velocity.Y = 0
+		}
+	}
+
+	if math.Abs(f.Velocity.X) < 0.1 && math.Abs(f.Velocity.Y) < 0.1 {
+		f.Solid = true
 	}
 }
 

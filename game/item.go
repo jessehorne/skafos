@@ -31,11 +31,11 @@ func NewInventoryItem(win *opengl.Window, itemType byte, amt int, inventoryPos p
 	return newItem
 }
 
-func (i *InventoryItem) Draw(win *opengl.Window, tiles map[byte]map[byte]*pixel.Sprite) {
+func (i *InventoryItem) Draw(win *opengl.Window) {
 	pos := i.GetDrawPosition(win)
 
 	drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(pos)
-	tiles[i.ItemType][0].Draw(win, drawPos)
+	Tiles[i.ItemType][0].Draw(win, drawPos)
 
 	i.Count.Clear()
 	i.Count.WriteString(strconv.Itoa(i.Amount))

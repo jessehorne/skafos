@@ -58,7 +58,7 @@ func NewChunk(win *opengl.Window, x, y, w, h int, chunkType string, g *Game) *Ch
 				if (pos.X > spawnSafe || pos.X < -spawnSafe) && (pos.Y > spawnSafe || pos.Y < -spawnSafe) {
 					newTreeBlock := NewBlock(win, BlockTypeTree, BlockTypeTreeFrameGrownTop, pos)
 					newChunk.Blocks[ty][tx] = append(newChunk.Blocks[ty][tx], newTreeBlock)
-					g.AddCollideable(newTreeBlock)
+					AddCollideable(newTreeBlock)
 				}
 			} else if objRnd > 21 && objRnd < 24 {
 				newStoneBlock := NewBlock(win, BlockTypeStone, BlockTypeStoneFrame1, pos)

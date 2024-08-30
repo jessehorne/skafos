@@ -57,12 +57,12 @@ func run() {
 
 	win.SetScrollCallback(func(win *opengl.Window, scroll pixel.Vec) {
 		if scroll.Y == 1 {
-			if g.Camera.Zoom < 42 {
-				g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+			if game.Cam.Zoom < 42 {
+				game.Cam.Zoom *= math.Pow(game.Cam.ZoomSpeed, scroll.Y)
 			}
 		} else {
-			if g.Camera.Zoom > 1.6 {
-				g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+			if game.Cam.Zoom > 1.6 {
+				game.Cam.Zoom *= math.Pow(game.Cam.ZoomSpeed, scroll.Y)
 			}
 		}
 	})

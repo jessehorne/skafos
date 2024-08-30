@@ -10,16 +10,18 @@ import (
 var (
 	Font  font.Face
 	Atlas *text.Atlas
+
+	Tiles        map[byte]map[byte]*pixel.Sprite
+	Floaters     []*Floater
+	Collideables []Collideable // list of objects to check for collision
+	Cam          *Camera
 )
 
 type Game struct {
 	Map                   *Map
 	Player                *Player
-	Camera                *Camera
-	Collideables          []Collideable // list of objects to check for collision
 	CollideablesDrawDebug bool
 	GUI                   *GUI
-	Floaters              []*Floater
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
@@ -38,7 +40,7 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		return nil, err
 	}
 
-	tiles := map[byte]map[byte]*pixel.Sprite{
+	Tiles = map[byte]map[byte]*pixel.Sprite{
 		BlockTypeDirt: {
 			BlockTypeDirtFrameDirt: pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H(), 16, s.Picture.Bounds().H()-16)),
 		},
@@ -66,69 +68,67 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		return nil, err
 	}
 
-	m, err := NewMap(name, s, tiles)
+	m, err := NewMap(name, s)
 	if err != nil {
 		return nil, err
 	}
 
-	camera := NewCamera()
+	Cam = NewCamera()
 
-	gui, err := NewGUI(win, camera, tiles)
+	gui, err := NewGUI(win)
 	if err != nil {
 		return nil, err
 	}
 
 	g := &Game{
-		Map:          m,
-		Player:       p,
-		Camera:       camera,
-		Collideables: []Collideable{},
-		GUI:          gui,
-		Floaters:     []*Floater{},
+		Map:    m,
+		Player: p,
+		GUI:    gui,
 	}
 
 	return g, nil
 }
 
 func (g *Game) Init(win *opengl.Window) {
-	g.AddCollideable(g.Player)
+	AddCollideable(g.Player)
 
 	// add an example floater at 50, 50
-	dirt := g.Map.Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt]
-	f := NewFloater(win, FloaterTypeDirt, pixel.V(50, 50), dirt)
-	g.Floaters = append(g.Floaters, f)
-	g.AddCollideable(f)
+	f := NewFloater(win, FloaterTypeDirt, pixel.V(50, 50), pixel.V(0, 0))
+	Floaters = append(Floaters, f)
+	AddCollideable(f)
 }
 
 func (g *Game) Update(win *opengl.Window, dt float64) {
+	newFloaters := []*Floater{}
 	// cleanup deleted floaters
-	for i, f := range g.Floaters {
-		if f.Deleted {
-			g.Floaters = append(g.Floaters[:i], g.Floaters[i+1:]...)
-
-			for x, c := range g.Collideables {
+	for _, f := range Floaters {
+		if !f.Deleted {
+			newFloaters = append(newFloaters, f)
+		} else {
+			for x, c := range Collideables {
 				if f == c {
-					g.Collideables = append(g.Collideables[:x], g.Collideables[x+1:]...)
+					Collideables = append(Collideables[:x], Collideables[x+1:]...)
 				}
 			}
 		}
 	}
+	Floaters = newFloaters
 
 	g.Map.ChunkPosition = g.Player.GetChunkPosition()
 	g.Map.GenerateChunksAroundPlayer(g, win)
 
-	for _, f := range g.Floaters {
+	for _, f := range Floaters {
 		f.Update(dt)
 	}
 
 	g.Player.Update(win, dt)
-	g.Camera.Update(g.Player.Position)
+	Cam.Update(g.Player.Position)
 
 	g.CheckCollisions()
 }
 
 func (g *Game) Draw(win *opengl.Window) {
-	g.Camera.StartCamera(win)
+	Cam.StartCamera(win)
 
 	// draw map
 	g.Map.FloorBatch.Clear()
@@ -140,7 +140,7 @@ func (g *Game) Draw(win *opengl.Window) {
 	g.Map.TreeBatchBottom.Draw(win)
 
 	// draw floaters
-	for _, f := range g.Floaters {
+	for _, f := range Floaters {
 		f.Draw(win)
 	}
 
@@ -151,12 +151,12 @@ func (g *Game) Draw(win *opengl.Window) {
 
 	// debug
 	if g.CollideablesDrawDebug {
-		for i := 0; i < len(g.Collideables); i++ {
-			g.Collideables[i].DrawDebug(win)
+		for i := 0; i < len(Collideables); i++ {
+			Collideables[i].DrawDebug(win)
 		}
 	}
 
-	g.Camera.EndCamera(win)
+	Cam.EndCamera(win)
 
 	g.GUI.SetInventoryItems(g.Player.Inventory)
 	g.GUI.Draw()
@@ -176,19 +176,19 @@ func (g *Game) CharCallback(r rune) {
 	g.Player.CharCallback(r)
 }
 
-func (g *Game) AddCollideable(c Collideable) {
-	g.Collideables = append(g.Collideables, c)
+func AddCollideable(c Collideable) {
+	Collideables = append(Collideables, c)
 }
 
 func (g *Game) CheckCollisions() {
-	for i := 0; i < len(g.Collideables); i++ {
-		for x := 0; x < len(g.Collideables); x++ {
+	for i := 0; i < len(Collideables); i++ {
+		for x := 0; x < len(Collideables); x++ {
 			if x == i {
 				continue
 			}
 
-			first := g.Collideables[i]
-			second := g.Collideables[x]
+			first := Collideables[i]
+			second := Collideables[x]
 
 			if !first.IsSolid() || !second.IsSolid() {
 				continue

@@ -14,10 +14,9 @@ type Map struct {
 	TreeBatchTop    *pixel.Batch
 	DrawRadius      float64   // how many chunks around the current center chunk should be drawn
 	ChunkPosition   pixel.Vec // the current center chunk
-	Tiles           map[byte]map[byte]*pixel.Sprite
 }
 
-func NewMap(name string, s *Spritesheet, tiles map[byte]map[byte]*pixel.Sprite) (*Map, error) {
+func NewMap(name string, s *Spritesheet) (*Map, error) {
 	return &Map{
 		Name:   name,
 		Chunks: map[int]map[int]*Chunk{},
@@ -27,7 +26,6 @@ func NewMap(name string, s *Spritesheet, tiles map[byte]map[byte]*pixel.Sprite) 
 		FloorBatch:      pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
 		TreeBatchBottom: pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
 		TreeBatchTop:    pixel.NewBatch(&pixel.TrianglesData{}, s.Picture),
-		Tiles:           tiles,
 		DrawRadius:      4,
 		ChunkPosition:   pixel.V(0, 0),
 	}, nil
@@ -104,9 +102,9 @@ func (m *Map) RefreshDrawBatch() {
 
 						if tile.Type == BlockTypeTree {
 							treeTops = append(treeTops, tile.GetPosition())
-							m.Tiles[BlockTypeTree][BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tile.GetPosition()))
+							Tiles[BlockTypeTree][BlockTypeTreeFrameGrownBottom].Draw(m.TreeBatchBottom, pixel.IM.Moved(tile.GetPosition()))
 						} else {
-							m.Tiles[tile.Type][tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tile.GetPosition()))
+							Tiles[tile.Type][tile.Frame].Draw(m.FloorBatch, pixel.IM.Moved(tile.GetPosition()))
 						}
 					}
 				}
@@ -116,7 +114,7 @@ func (m *Map) RefreshDrawBatch() {
 
 	// add tree tops to their batch
 	for i := len(treeTops) - 1; i >= 0; i-- {
-		m.Tiles[BlockTypeTree][BlockTypeTreeFrameGrownTop].Draw(m.TreeBatchTop, pixel.IM.Moved(treeTops[i]))
+		Tiles[BlockTypeTree][BlockTypeTreeFrameGrownTop].Draw(m.TreeBatchTop, pixel.IM.Moved(treeTops[i]))
 	}
 }
 

@@ -45,7 +45,7 @@ type GUI struct {
 	Tiles map[byte]map[byte]*pixel.Sprite
 }
 
-func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.Sprite) (*GUI, error) {
+func NewGUI(win *opengl.Window) (*GUI, error) {
 	s, err := NewSpritesheet("./assets/gui.png")
 	if err != nil {
 		return nil, err
@@ -61,7 +61,6 @@ func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.S
 
 	g := &GUI{
 		Window:      win,
-		Camera:      camera,
 		Spritesheet: s,
 		BarSprite:   barSprite,
 		OffsetX:     8 * 16,
@@ -84,8 +83,6 @@ func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.S
 
 		Inventory: [][]*InventoryItem{},
 
-		Tiles: tiles,
-
 		HotbarSelectionSprite: pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-1*16, 2*16, s.Picture.Bounds().H()-2*16)),
 	}
 
@@ -98,7 +95,7 @@ func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.S
 }
 
 func (g *GUI) Draw() {
-	g.Camera.EndCamera(g.Window)
+	Cam.EndCamera(g.Window)
 	g.RedrawBars()
 	g.DrawHotbar()
 
@@ -106,7 +103,7 @@ func (g *GUI) Draw() {
 		g.DrawInventory()
 	}
 
-	g.Camera.StartCamera(g.Window)
+	Cam.StartCamera(g.Window)
 }
 
 func (g *GUI) RedrawBars() {
@@ -186,7 +183,7 @@ func (g *GUI) DrawHotbar() {
 		// draw items in players inventory if exists
 
 		if i != nil {
-			i.Draw(g.Window, g.Tiles)
+			i.Draw(g.Window)
 		}
 	}
 
@@ -220,7 +217,7 @@ func (g *GUI) DrawInventory() {
 			invItem := items[y][x]
 
 			if invItem != nil {
-				invItem.Draw(g.Window, g.Tiles)
+				invItem.Draw(g.Window)
 			}
 		}
 	}

@@ -292,7 +292,11 @@ func (p *Player) Collide(c Collideable) {
 		}
 	} else if c.GetType() == CollideableTypeFloater {
 		f := c.(*Floater)
-		p.AddItemToInventory(f.ItemType)
+
+		if !f.Deleted {
+			p.AddItemToInventory(f.ItemType)
+			f.Deleted = true
+		}
 	}
 }
 
@@ -379,5 +383,40 @@ func (p *Player) AddItemToInventory(itemType byte) {
 func (p *Player) CharCallback(r rune) {
 	if r >= 49 && r < 59 {
 		p.HotbarX = int(r - 49)
+	} else {
+		if r == 'q' {
+			// throw currently held item
+			p.ThrowInventoryItem()
+		}
+	}
+}
+
+func (p *Player) GetHeldItem() *InventoryItem {
+	return p.Inventory[0][p.HotbarX]
+}
+
+func (p *Player) ThrowInventoryItem() {
+	item := p.GetHeldItem()
+
+	if item != nil {
+		if item.Amount > 0 {
+			item.Amount -= 1
+			mousePos := p.Window.MousePosition()
+			adjusted := Cam.Matrix.Project(p.Position)
+
+			delta := mousePos.Sub(adjusted)
+			l := delta.Len()
+
+			delta.X = (delta.X / l) * 100.0
+			delta.Y = (delta.Y / l) * 100.0
+
+			newFloater := NewFloater(p.Window, item.ItemType, p.Position, delta)
+			Floaters = append(Floaters, newFloater)
+			AddCollideable(newFloater)
+
+			if item.Amount == 0 {
+				p.Inventory[0][p.HotbarX] = nil
+			}
+		}
 	}
 }

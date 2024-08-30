@@ -6,6 +6,7 @@ import (
 )
 
 type Camera struct {
+	Matrix    pixel.Matrix
 	Position  pixel.Vec
 	Speed     float64
 	Zoom      float64
@@ -14,6 +15,7 @@ type Camera struct {
 
 func NewCamera() *Camera {
 	return &Camera{
+		Matrix:    pixel.IM,
 		Position:  pixel.ZV,
 		Speed:     100.0,
 		Zoom:      4.0,
@@ -26,8 +28,8 @@ func (c *Camera) Update(pos pixel.Vec) {
 }
 
 func (c *Camera) StartCamera(win *opengl.Window) {
-	camera := pixel.IM.Scaled(c.Position, c.Zoom).Moved(win.Bounds().Center().Sub(c.Position))
-	win.SetMatrix(camera)
+	c.Matrix = pixel.IM.Scaled(c.Position, c.Zoom).Moved(win.Bounds().Center().Sub(c.Position))
+	win.SetMatrix(c.Matrix)
 }
 
 func (c *Camera) EndCamera(win *opengl.Window) {

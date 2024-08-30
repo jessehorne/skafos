@@ -36,9 +36,11 @@ type GUI struct {
 
 	NeedsRedraw bool
 
-	HotbarItems         []*InventoryItem
-	Inventory           [][]*InventoryItem
-	ShouldDrawInventory bool
+	HotbarItems           []*InventoryItem
+	HotbarX               int
+	HotbarSelectionSprite *pixel.Sprite
+	Inventory             [][]*InventoryItem
+	ShouldDrawInventory   bool
 
 	Tiles map[byte]map[byte]*pixel.Sprite
 }
@@ -83,6 +85,8 @@ func NewGUI(win *opengl.Window, camera *Camera, tiles map[byte]map[byte]*pixel.S
 		Inventory: [][]*InventoryItem{},
 
 		Tiles: tiles,
+
+		HotbarSelectionSprite: pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-1*16, 2*16, s.Picture.Bounds().H()-2*16)),
 	}
 
 	//g.HealthBarPosition = pixel.V(g.OffsetX, g.Window.Bounds().H()-g.OffsetY)
@@ -185,10 +189,15 @@ func (g *GUI) DrawHotbar() {
 			i.Draw(g.Window, g.Tiles)
 		}
 	}
+
+	// draw hotbar selection
+	drawPos := GetInventoryItemDrawPosition(g.Window, g.HotbarX, 0)
+	g.HotbarSelectionSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(drawPos))
 }
 
-func (g *GUI) SetHotbarItems(items []*InventoryItem) {
+func (g *GUI) SetHotbarItems(items []*InventoryItem, hotbarX int) {
 	g.HotbarItems = items
+	g.HotbarX = hotbarX
 }
 
 func (g *GUI) DrawInventory() {

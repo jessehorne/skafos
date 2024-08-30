@@ -52,3 +52,14 @@ func (i *InventoryItem) GetDrawPosition(win *opengl.Window) pixel.Vec {
 
 	return pixel.V(offsetX+posX, offsetY+posY+36)
 }
+
+func GetInventoryItemDrawPosition(win *opengl.Window, x, y int) pixel.Vec {
+	scale := 4.0
+	posX := float64(x) * 16 * scale
+	posY := float64(y) * 16 * scale
+
+	offsetX := win.Bounds().W()/2 - (8 * 16) - 16*scale
+	offsetY := 4.0
+
+	return pixel.V(offsetX+posX, offsetY+posY+36)
+}

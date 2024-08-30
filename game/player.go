@@ -29,6 +29,7 @@ type Player struct {
 	Inventory           [][]*InventoryItem
 	InventoryW          int
 	InventoryH          int
+	HotbarX             int
 	ShouldDrawInventory bool
 	CurrentFrame        float64
 	MaxMovementFrame    float64
@@ -255,7 +256,7 @@ func (p *Player) Draw(win *opengl.Window, gui *GUI) {
 		p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
 	}
 
-	gui.SetHotbarItems(p.Inventory[0])
+	gui.SetHotbarItems(p.Inventory[0], p.HotbarX)
 }
 
 func (p *Player) GetChunkPosition() pixel.Vec {
@@ -372,5 +373,11 @@ func (p *Player) AddItemToInventory(itemType byte) {
 			newInvItem := NewInventoryItem(p.Window, itemType, 1, pixel.V(float64(foundX), float64(foundY)))
 			p.Inventory[foundY][foundX] = newInvItem
 		}
+	}
+}
+
+func (p *Player) CharCallback(r rune) {
+	if r >= 49 && r < 59 {
+		p.HotbarX = int(r - 49)
 	}
 }

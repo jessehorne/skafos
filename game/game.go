@@ -172,6 +172,8 @@ func (g *Game) CharCallback(r rune) {
 	} else if r == 'i' {
 		g.GUI.ShouldDrawInventory = !g.GUI.ShouldDrawInventory
 	}
+
+	g.Player.CharCallback(r)
 }
 
 func (g *Game) AddCollideable(c Collideable) {

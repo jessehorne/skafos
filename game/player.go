@@ -234,12 +234,6 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 		p.CurrentFrame += p.SwingFrameSpeed * dt
 	}
 
-	if win.Pressed(pixel.KeyLeftControl) {
-		p.WalkingOrRunning = PlayerRunning
-	} else {
-		p.WalkingOrRunning = PlayerWalking
-	}
-
 	if p.CurrentFrame > p.MaxMovementFrame {
 		if p.IsSwinging {
 			p.IsSwinging = !p.IsSwinging
@@ -324,6 +318,12 @@ func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
 				p.CurrentFrame = 0
 				p.IsSwinging = true
 			}
+		}
+	} else if btn == pixel.KeyLeftControl && action == pixel.Press {
+		if p.WalkingOrRunning == PlayerWalking {
+			p.WalkingOrRunning = PlayerRunning
+		} else if p.WalkingOrRunning == PlayerRunning {
+			p.WalkingOrRunning = PlayerWalking
 		}
 	}
 }

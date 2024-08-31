@@ -39,6 +39,7 @@ type Player struct {
 	DebugRect           *pixel.Sprite
 	IsSwinging          bool
 	SwingFrameSpeed     float64
+	InInventory         bool
 }
 
 func NewPlayer(win *opengl.Window) (*Player, error) {
@@ -318,9 +319,11 @@ func (p *Player) DrawDebug(win *opengl.Window) {
 
 func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
 	if btn == pixel.MouseButtonLeft && action == pixel.Press {
-		if !p.IsSwinging {
-			p.CurrentFrame = 0
-			p.IsSwinging = true
+		if !p.InInventory {
+			if !p.IsSwinging {
+				p.CurrentFrame = 0
+				p.IsSwinging = true
+			}
 		}
 	}
 }
@@ -384,9 +387,11 @@ func (p *Player) CharCallback(r rune) {
 	if r >= 49 && r < 59 {
 		p.HotbarX = int(r - 49)
 	} else {
-		if r == 'q' {
-			// throw currently held item
-			p.ThrowInventoryItem()
+		if !p.InInventory {
+			if r == 'q' {
+				// throw currently held item
+				p.ThrowInventoryItem()
+			}
 		}
 	}
 }

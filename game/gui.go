@@ -5,6 +5,8 @@ import (
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"golang.org/x/image/colornames"
 	"image"
+	"math"
+	"strconv"
 )
 
 type GUI struct {
@@ -43,6 +45,8 @@ type GUI struct {
 	ShouldDrawInventory   bool
 
 	Tiles map[byte]map[byte]*pixel.Sprite
+
+	HoldingInvItem *InventoryItem
 }
 
 func NewGUI(win *opengl.Window) (*GUI, error) {
@@ -103,6 +107,11 @@ func (g *GUI) Draw() {
 		g.DrawInventory()
 	}
 
+	if g.HoldingInvItem != nil {
+		g.HoldingInvItem.Draw(g.Window)
+		g.HoldingInvItem.Count.Draw(g.Window, pixel.IM)
+	}
+
 	Cam.StartCamera(g.Window)
 }
 
@@ -118,6 +127,14 @@ func (g *GUI) RedrawBars() {
 	// thirst
 	g.UpdateThirst(50)
 	g.BarSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(g.ThirstBarPosition.Add(pixel.V(g.OffsetX, -g.OffsetY))))
+}
+
+func (g *GUI) Update(dt float64) {
+	if g.HoldingInvItem != nil {
+		g.HoldingInvItem.DrawPosition = g.Window.MousePosition()
+		g.HoldingInvItem.Count.Orig = g.Window.MousePosition()
+		g.HoldingInvItem.Count.Dot = g.Window.MousePosition()
+	}
 }
 
 func (g *GUI) UpdateHealth(v float64) {
@@ -225,4 +242,89 @@ func (g *GUI) DrawInventory() {
 
 func (g *GUI) SetInventoryItems(items [][]*InventoryItem) {
 	g.Inventory = items
+}
+
+func (g *GUI) ButtonCallback(btn pixel.Button, action pixel.Action) {
+	if btn == pixel.MouseButtonLeft && action == pixel.Press {
+		if g.ShouldDrawInventory {
+			g.HandleInventoryLeftClick()
+		}
+	} else if btn == pixel.MouseButtonRight && action == pixel.Press {
+		if g.ShouldDrawInventory {
+			g.HandleInventoryRightClick()
+		}
+	}
+}
+
+func (g *GUI) HandleInventoryLeftClick() {
+	// check if mouse pressed inventory item
+	mousePos := g.Window.MousePosition()
+
+	offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 8*g.Scale
+	offsetY := 0.0
+
+	clickedX := int(math.Floor((mousePos.X-offsetX)/(16*g.Scale)) + 1)
+	clickedY := int(math.Floor((mousePos.Y - offsetY) / (16 * g.Scale)))
+
+	invItem := g.Inventory[clickedY][clickedX]
+
+	// if invItem is nil it means we're clicking into an inventory spot with nothing in it
+	if invItem == nil {
+		// if we're holding an item, we should place it there and stop holding it
+		if g.HoldingInvItem != nil {
+			g.HoldingInvItem.InventoryPosition = pixel.V(float64(clickedX), float64(clickedY))
+			g.HoldingInvItem.ShouldUseDrawPosition = false
+			g.HoldingInvItem.Count.Orig = g.HoldingInvItem.GetDrawPosition(g.Window)
+			g.Inventory[clickedY][clickedX] = g.HoldingInvItem
+			g.HoldingInvItem = nil
+		}
+	} else {
+		if g.HoldingInvItem != nil {
+			// if invItem isn't nil, it means we're trying to either merge stacks or toggle between holding what is under the mouse cursor
+			if invItem.ItemType == g.HoldingInvItem.ItemType {
+				// merge stacks
+				invItem.Amount += g.HoldingInvItem.Amount
+				g.HoldingInvItem = nil
+			} else {
+				toPickup := invItem
+				toDrop := g.HoldingInvItem
+
+				g.HoldingInvItem = toPickup
+				invItem = toDrop
+			}
+		} else {
+			g.HoldingInvItem = invItem
+			g.HoldingInvItem.ShouldUseDrawPosition = true
+			g.Inventory[clickedY][clickedX] = nil
+		}
+	}
+}
+
+func (g *GUI) HandleInventoryRightClick() {
+	// check if mouse pressed inventory item
+	mousePos := g.Window.MousePosition()
+
+	offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 8*g.Scale
+	offsetY := 0.0
+
+	clickedX := int(math.Floor((mousePos.X-offsetX)/(16*g.Scale)) + 1)
+	clickedY := int(math.Floor((mousePos.Y - offsetY) / (16 * g.Scale)))
+
+	invItem := g.Inventory[clickedY][clickedX]
+
+	// if invItem is nil it means we're clicking into an inventory spot with nothing in it
+	if invItem != nil {
+		if g.HoldingInvItem == nil {
+			if invItem.Amount >= 2 {
+				half := invItem.Amount / 2
+				invItem.Amount -= half
+
+				newItem := NewInventoryItem(g.Window, invItem.ItemType, half, invItem.InventoryPosition)
+				newItem.ShouldUseDrawPosition = true
+				newItem.Count.Clear()
+				newItem.Count.WriteString(strconv.Itoa(half))
+				g.HoldingInvItem = newItem
+			}
+		}
+	}
 }

@@ -10,12 +10,14 @@ import (
 )
 
 type InventoryItem struct {
-	ItemType          byte
-	Amount            int
-	InventoryPosition pixel.Vec
-	Count             *text.Text
-	Font              font.Face
-	Atlas             *text.Atlas
+	ItemType              byte
+	Amount                int
+	InventoryPosition     pixel.Vec
+	DrawPosition          pixel.Vec
+	ShouldUseDrawPosition bool
+	Count                 *text.Text
+	Font                  font.Face
+	Atlas                 *text.Atlas
 }
 
 func NewInventoryItem(win *opengl.Window, itemType byte, amt int, inventoryPos pixel.Vec) *InventoryItem {
@@ -32,14 +34,19 @@ func NewInventoryItem(win *opengl.Window, itemType byte, amt int, inventoryPos p
 }
 
 func (i *InventoryItem) Draw(win *opengl.Window) {
-	pos := i.GetDrawPosition(win)
+	if i.ShouldUseDrawPosition {
+		drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(i.DrawPosition)
+		Tiles[i.ItemType][0].Draw(win, drawPos)
+	} else {
+		pos := i.GetDrawPosition(win)
 
-	drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(pos)
-	Tiles[i.ItemType][0].Draw(win, drawPos)
+		drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(pos)
+		Tiles[i.ItemType][0].Draw(win, drawPos)
 
-	i.Count.Clear()
-	i.Count.WriteString(strconv.Itoa(i.Amount))
-	i.Count.Draw(win, pixel.IM)
+		i.Count.Clear()
+		i.Count.WriteString(strconv.Itoa(i.Amount))
+		i.Count.Draw(win, pixel.IM)
+	}
 }
 
 func (i *InventoryItem) GetDrawPosition(win *opengl.Window) pixel.Vec {

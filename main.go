@@ -28,8 +28,8 @@ func loadPicture(path string) (pixel.Picture, error) {
 
 func run() {
 	cfg := opengl.WindowConfig{
-		Title:  "Skafos (pre-alpha) by JesseH",
-		Bounds: pixel.R(0, 0, 1600, 900),
+		Title:  "Skafos v0.0.1",
+		Bounds: pixel.R(0, 0, 900, 600),
 		VSync:  true,
 	}
 

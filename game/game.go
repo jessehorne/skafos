@@ -122,6 +122,7 @@ func (g *Game) Update(win *opengl.Window, dt float64) {
 	}
 
 	g.Player.Update(win, dt)
+	g.GUI.Update(dt)
 	Cam.Update(g.Player.Position)
 
 	g.CheckCollisions()
@@ -164,6 +165,7 @@ func (g *Game) Draw(win *opengl.Window) {
 
 func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {
 	g.Player.ButtonCallback(btn, action)
+	g.GUI.ButtonCallback(btn, action)
 }
 
 func (g *Game) CharCallback(r rune) {
@@ -171,6 +173,7 @@ func (g *Game) CharCallback(r rune) {
 		g.CollideablesDrawDebug = !g.CollideablesDrawDebug
 	} else if r == 'i' {
 		g.GUI.ShouldDrawInventory = !g.GUI.ShouldDrawInventory
+		g.Player.InInventory = g.GUI.ShouldDrawInventory
 	}
 
 	g.Player.CharCallback(r)

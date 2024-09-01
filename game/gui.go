@@ -286,11 +286,16 @@ func (g *GUI) HandleInventoryLeftClick() {
 				invItem.Amount += g.HoldingInvItem.Amount
 				g.HoldingInvItem = nil
 			} else {
-				toPickup := invItem
 				toDrop := g.HoldingInvItem
+				toDrop.InventoryPosition = invItem.InventoryPosition
+				toDrop.Count.Orig = g.HoldingInvItem.GetDrawPosition(g.Window)
 
+				toPickup := invItem
+				toPickup.ShouldUseDrawPosition = true
 				g.HoldingInvItem = toPickup
-				invItem = toDrop
+
+				toDrop.ShouldUseDrawPosition = false
+				g.Inventory[clickedY][clickedX] = toDrop
 			}
 		} else {
 			g.HoldingInvItem = invItem

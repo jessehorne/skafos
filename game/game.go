@@ -4,7 +4,9 @@ import (
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"github.com/gopxl/pixel/v2/ext/text"
+	"golang.org/x/image/colornames"
 	"golang.org/x/image/font"
+	"image"
 )
 
 var (
@@ -15,6 +17,9 @@ var (
 	Floaters     []*Floater
 	Collideables []Collideable // list of objects to check for collision
 	Cam          *Camera
+
+	FloaterBorderImage  *image.RGBA
+	FloaterBorderSprite *pixel.Sprite
 )
 
 type Game struct {
@@ -91,6 +96,8 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 
 func (g *Game) Init(win *opengl.Window) {
 	AddCollideable(g.Player)
+
+	FloaterBorderImage, FloaterBorderSprite = MakeRect(18, 18, colornames.Black)
 
 	// add an example floater at 50, 50
 	f := NewFloater(win, FloaterTypeDirt, pixel.V(50, 50), pixel.V(0, 0))

@@ -50,6 +50,8 @@ func NewFloater(win *opengl.Window, t byte, position, velocity pixel.Vec) *Float
 
 	if t == BlockTypeDirt {
 		f.Sprite = Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt]
+	} else if t == BlockTypeGrass {
+		f.Sprite = Tiles[BlockTypeGrass][BlockTypeGrassFrame1]
 	}
 
 	return f
@@ -135,7 +137,9 @@ func (f *Floater) Update(dt float64) {
 }
 
 func (f *Floater) Draw(win *opengl.Window) {
-	f.Sprite.Draw(win, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, f.Scale).Rotated(pixel.ZV, f.Rotation).Moved(f.Position))
+	pos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, f.Scale).Rotated(pixel.ZV, f.Rotation).Moved(f.Position)
+	FloaterBorderSprite.Draw(win, pos)
+	f.Sprite.Draw(win, pos)
 }
 
 func (f *Floater) DrawDebug(win *opengl.Window) {

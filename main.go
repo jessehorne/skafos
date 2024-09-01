@@ -49,7 +49,7 @@ func run() {
 
 	g.Init(win)
 	g.Map.RefreshDrawBatch()
-	g.CollideablesDrawDebug = true
+	g.CollideablesDrawDebug = false
 
 	maxFPS := float64(1 / 30)
 	currentFrame := float64(0)

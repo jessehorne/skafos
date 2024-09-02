@@ -180,6 +180,17 @@ func (g *Game) CharCallback(r rune) {
 		g.CollideablesDrawDebug = !g.CollideablesDrawDebug
 	} else if r == 'i' {
 		g.GUI.ShouldDrawInventory = !g.GUI.ShouldDrawInventory
+
+		if g.GUI.HoldingInvItem != nil {
+			g.GUI.HoldingInvItem.ShouldUseDrawPosition = false
+			g.GUI.HoldingInvItem.Count.Orig = g.GUI.HoldingInvItem.GetDrawPosition(g.GUI.Window)
+			i := g.GUI.HoldingInvItem
+
+			g.GUI.Inventory[int(i.InventoryPosition.Y)][int(i.InventoryPosition.X)] = g.GUI.HoldingInvItem
+
+			g.GUI.HoldingInvItem = nil
+		}
+
 		g.Player.InInventory = g.GUI.ShouldDrawInventory
 	}
 

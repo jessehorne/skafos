@@ -33,6 +33,24 @@ func NewInventoryItem(win *opengl.Window, itemType byte, amt int, inventoryPos p
 	return newItem
 }
 
+func (i *InventoryItem) GetCraftingPosition(win *opengl.Window, scale float64) pixel.Vec {
+	craftingOffsetX := win.Bounds().W()/2 + 16*scale
+	craftingOffsetY := win.Bounds().H()/2 + 7*scale
+
+	posX := craftingOffsetX + i.InventoryPosition.X*(16*scale)
+	posY := craftingOffsetY + i.InventoryPosition.Y*(16*scale)
+
+	return pixel.V(posX, posY)
+}
+
+func (i *InventoryItem) DrawCraftingItem(win *opengl.Window, scale float64) {
+	pos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(i.GetCraftingPosition(win, scale))
+	Tiles[i.ItemType][0].Draw(win, pos)
+	i.Count.Clear()
+	i.Count.WriteString(strconv.Itoa(i.Amount))
+	i.Count.Draw(win, pixel.IM)
+}
+
 func (i *InventoryItem) Draw(win *opengl.Window) {
 	if i.ShouldUseDrawPosition {
 		drawPos := pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, 3.0).Moved(i.DrawPosition)

@@ -50,6 +50,8 @@ type GUI struct {
 	Tiles map[byte]map[byte]*pixel.Sprite
 
 	HoldingInvItem *InventoryItem
+
+	CraftingSlots [][]*InventoryItem
 }
 
 func NewGUI(win *opengl.Window) (*GUI, error) {
@@ -102,6 +104,8 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 	g.HealthBarPosition = pixel.V(16, g.Window.Bounds().H())
 	g.HungerBarPosition = pixel.V(16, g.Window.Bounds().H()-2*16)
 	g.ThirstBarPosition = pixel.V(16, g.Window.Bounds().H()-4*16)
+
+	g.ClearCraftingItems()
 
 	return g, nil
 }
@@ -249,6 +253,17 @@ func (g *GUI) DrawInventory() {
 
 	// draw big sprite
 	g.BigSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(g.BigOffset))
+
+	// draw crafting items
+	for y := 0; y < 3; y++ {
+		for x := 0; x < 3; x++ {
+			slotItem := g.CraftingSlots[y][x]
+
+			if slotItem != nil {
+				slotItem.DrawCraftingItem(g.Window, g.Scale)
+			}
+		}
+	}
 }
 
 func (g *GUI) SetInventoryItems(items [][]*InventoryItem) {
@@ -256,37 +271,49 @@ func (g *GUI) SetInventoryItems(items [][]*InventoryItem) {
 }
 
 func (g *GUI) ButtonCallback(btn pixel.Button, action pixel.Action) {
-	if btn == pixel.MouseButtonLeft && action == pixel.Press {
-		if g.ShouldDrawInventory {
-			g.HandleInventoryLeftClick()
-		}
-	} else if btn == pixel.MouseButtonRight && action == pixel.Press {
-		if g.ShouldDrawInventory {
-			g.HandleInventoryRightClick()
-		}
-	}
-}
-
-func (g *GUI) HandleInventoryLeftClick() {
-	// check if mouse pressed inventory item
 	mousePos := g.Window.MousePosition()
-
 	offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 8*g.Scale
 	offsetY := 0.0
 
 	clickedX := int(math.Floor((mousePos.X-offsetX)/(16*g.Scale)) + 1)
 	clickedY := int(math.Floor((mousePos.Y - offsetY) / (16 * g.Scale)))
 
-	invItem := g.Inventory[clickedY][clickedX]
+	craftingOffsetX := g.Window.Bounds().W()/2 - (8 * 16) - 8*g.Scale
+	craftingOffsetY := -6 * g.Scale
+
+	craftingClickedX := int(math.Floor((mousePos.X-craftingOffsetX)/(16*g.Scale))+1) - 4
+	craftingClickedY := int(math.Floor((mousePos.Y-craftingOffsetY)/(16*g.Scale))) - 5
+
+	if btn == pixel.MouseButtonLeft && action == pixel.Press {
+		if g.ShouldDrawInventory {
+			if clickedX >= 0 && clickedX < 8 && clickedY >= 0 && clickedY < 3 {
+				g.HandleInventoryLeftClick(clickedX, clickedY)
+			}
+
+			g.HandleCraftingSlotLeftClick(craftingClickedX, craftingClickedY)
+		}
+	} else if btn == pixel.MouseButtonRight && action == pixel.Press {
+		if g.ShouldDrawInventory {
+			if clickedX >= 0 && clickedX < 8 && clickedY >= 0 && clickedY < 3 {
+				g.HandleInventoryRightClick(clickedX, clickedY)
+			}
+
+			g.HandleCraftingSlotRightClick(craftingClickedX, craftingClickedY)
+		}
+	}
+}
+
+func (g *GUI) HandleInventoryLeftClick(x, y int) {
+	invItem := g.Inventory[y][x]
 
 	// if invItem is nil it means we're clicking into an inventory spot with nothing in it
 	if invItem == nil {
 		// if we're holding an item, we should place it there and stop holding it
 		if g.HoldingInvItem != nil {
-			g.HoldingInvItem.InventoryPosition = pixel.V(float64(clickedX), float64(clickedY))
+			g.HoldingInvItem.InventoryPosition = pixel.V(float64(x), float64(y))
 			g.HoldingInvItem.ShouldUseDrawPosition = false
 			g.HoldingInvItem.Count.Orig = g.HoldingInvItem.GetDrawPosition(g.Window)
-			g.Inventory[clickedY][clickedX] = g.HoldingInvItem
+			g.Inventory[y][x] = g.HoldingInvItem
 			g.HoldingInvItem = nil
 		}
 	} else {
@@ -306,27 +333,18 @@ func (g *GUI) HandleInventoryLeftClick() {
 				g.HoldingInvItem = toPickup
 
 				toDrop.ShouldUseDrawPosition = false
-				g.Inventory[clickedY][clickedX] = toDrop
+				g.Inventory[y][x] = toDrop
 			}
 		} else {
 			g.HoldingInvItem = invItem
 			g.HoldingInvItem.ShouldUseDrawPosition = true
-			g.Inventory[clickedY][clickedX] = nil
+			g.Inventory[y][x] = nil
 		}
 	}
 }
 
-func (g *GUI) HandleInventoryRightClick() {
-	// check if mouse pressed inventory item
-	mousePos := g.Window.MousePosition()
-
-	offsetX := g.Window.Bounds().W()/2 - (8 * 16) - 8*g.Scale
-	offsetY := 0.0
-
-	clickedX := int(math.Floor((mousePos.X-offsetX)/(16*g.Scale)) + 1)
-	clickedY := int(math.Floor((mousePos.Y - offsetY) / (16 * g.Scale)))
-
-	invItem := g.Inventory[clickedY][clickedX]
+func (g *GUI) HandleInventoryRightClick(x, y int) {
+	invItem := g.Inventory[y][x]
 
 	// if invItem is nil it means we're clicking into an inventory spot with nothing in it
 	if invItem != nil {
@@ -340,6 +358,161 @@ func (g *GUI) HandleInventoryRightClick() {
 				newItem.Count.Clear()
 				newItem.Count.WriteString(strconv.Itoa(half))
 				g.HoldingInvItem = newItem
+			}
+		} else {
+			// if invItem isn't nil and we're right clicking and holding something, we should try to add one to it
+			if g.HoldingInvItem.ItemType == invItem.ItemType {
+				if g.HoldingInvItem.Amount > 0 {
+					g.HoldingInvItem.Amount -= 1
+					g.HoldingInvItem.Count.Clear()
+					g.HoldingInvItem.Count.WriteString(strconv.Itoa(g.HoldingInvItem.Amount))
+					invItem.Amount += 1
+
+					if g.HoldingInvItem.Amount == 0 {
+						g.HoldingInvItem = nil
+					}
+				}
+			}
+		}
+	} else {
+		// if invItem is nil we should create a 1 amount here and subtract from current
+		if g.HoldingInvItem != nil {
+			if g.HoldingInvItem.Amount > 0 {
+				newItem := NewInventoryItem(g.Window, g.HoldingInvItem.ItemType, 1, pixel.V(float64(x), float64(y)))
+				newItem.Count.Orig = newItem.GetDrawPosition(g.Window)
+				newItem.Count.Clear()
+				newItem.Count.WriteString("1")
+				g.Inventory[y][x] = newItem
+
+				g.HoldingInvItem.Amount -= 1
+				g.HoldingInvItem.Count.Clear()
+				g.HoldingInvItem.Count.WriteString(strconv.Itoa(g.HoldingInvItem.Amount))
+
+				if g.HoldingInvItem.Amount == 0 {
+					g.HoldingInvItem = nil
+				}
+			}
+		}
+	}
+}
+
+func (g *GUI) ClearCraftingItems() {
+	g.CraftingSlots = [][]*InventoryItem{}
+	for y := 0; y < 3; y++ {
+		if len(g.CraftingSlots) == y {
+			g.CraftingSlots = append(g.CraftingSlots, []*InventoryItem{})
+		}
+		for x := 0; x < 3; x++ {
+			g.CraftingSlots[y] = append(g.CraftingSlots[y], nil)
+		}
+	}
+}
+
+func (g *GUI) HandleCraftingSlotLeftClick(x, y int) {
+	// crafted items popup: 4, 4
+	// trash can: 6, 4
+	// head: 1, 7
+	// torso: 1, 6
+	// legs: 1, 5
+	// feet: 1, 4
+
+	if (x < 0 || x >= 3) || (y < 0 || y >= 3) {
+		return
+	}
+
+	slot := g.CraftingSlots[y][x]
+
+	// if holding item, check if we should drop it or switch it or merge it
+	if g.HoldingInvItem != nil {
+		// drop it if crafting slot is nil
+		if slot == nil {
+			// drop it
+			toDrop := g.HoldingInvItem
+			toDrop.InventoryPosition = pixel.V(float64(x), float64(y))
+			toDrop.Count.Orig = g.HoldingInvItem.GetCraftingPosition(g.Window, g.Scale)
+			g.CraftingSlots[y][x] = toDrop
+			g.HoldingInvItem = nil
+		} else {
+			if slot.ItemType == g.HoldingInvItem.ItemType {
+				// merge stacks
+				slot.Amount += g.HoldingInvItem.Amount
+				g.HoldingInvItem = nil
+			} else {
+				// switch it if one exists
+				toDrop := g.HoldingInvItem
+				toDrop.InventoryPosition = slot.InventoryPosition
+				toDrop.Count.Orig = g.HoldingInvItem.GetCraftingPosition(g.Window, g.Scale)
+
+				toPickup := slot
+				toPickup.ShouldUseDrawPosition = true
+				g.HoldingInvItem = toPickup
+
+				toDrop.ShouldUseDrawPosition = false
+				g.CraftingSlots[y][x] = toDrop
+			}
+		}
+	} else {
+		// if we're not holding an item, it means we need to pick up from the crafting table if it exists
+		if slot != nil {
+			g.HoldingInvItem = slot
+			g.HoldingInvItem.ShouldUseDrawPosition = true
+			g.CraftingSlots[y][x] = nil
+		}
+	}
+}
+
+func (g *GUI) HandleCraftingSlotRightClick(x, y int) {
+	if (x < 0 || x >= 3) || (y < 0 || y >= 3) {
+		return
+	}
+
+	invItem := g.CraftingSlots[y][x]
+
+	// if invItem is nil it means we're clicking into an inventory spot with nothing in it
+	if invItem != nil {
+		if g.HoldingInvItem == nil {
+			if invItem.Amount >= 2 {
+				half := invItem.Amount / 2
+				invItem.Amount -= half
+
+				newItem := NewInventoryItem(g.Window, invItem.ItemType, half, invItem.InventoryPosition)
+				newItem.ShouldUseDrawPosition = true
+				newItem.Count.Clear()
+				newItem.Count.WriteString(strconv.Itoa(half))
+				g.HoldingInvItem = newItem
+			}
+		} else {
+			// if invItem isn't nil and we're right clicking and holding something, we should try to add one to it
+			if g.HoldingInvItem.ItemType == invItem.ItemType {
+				if g.HoldingInvItem.Amount > 0 {
+					g.HoldingInvItem.Amount -= 1
+					g.HoldingInvItem.Count.Clear()
+					g.HoldingInvItem.Count.WriteString(strconv.Itoa(g.HoldingInvItem.Amount))
+					invItem.Amount += 1
+
+					if g.HoldingInvItem.Amount == 0 {
+						g.HoldingInvItem = nil
+					}
+				}
+			}
+		}
+	} else {
+		// if invItem is nil we should create a 1 amount here and subtract from current
+		if g.HoldingInvItem != nil {
+			if g.HoldingInvItem.Amount > 0 {
+				newItem := NewInventoryItem(g.Window, g.HoldingInvItem.ItemType, 1, pixel.V(float64(x), float64(y)))
+				newItem.Count.Orig = newItem.GetCraftingPosition(g.Window, g.Scale)
+				newItem.Count.Clear()
+				newItem.Count.WriteString("1")
+				g.CraftingSlots[y][x] = newItem
+
+				g.HoldingInvItem.Amount -= 1
+				g.HoldingInvItem.Count.Clear()
+				g.HoldingInvItem.Count.WriteString(strconv.Itoa(g.HoldingInvItem.Amount))
+
+				if g.HoldingInvItem.Amount == 0 {
+					g.HoldingInvItem = nil
+				}
 			}
 		}
 	}

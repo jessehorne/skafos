@@ -34,6 +34,9 @@ type GUI struct {
 	ThirstBarImage    *image.RGBA
 	ThirstBarSprite   *pixel.Sprite
 
+	BigSprite *pixel.Sprite
+	BigOffset pixel.Vec
+
 	ItemSprite *pixel.Sprite
 
 	NeedsRedraw bool
@@ -63,6 +66,8 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 
 	itemSprite := pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-16, 16, s.Picture.Bounds().H()-2*16))
 
+	bigSprite := pixel.NewSprite(s.Picture, pixel.R(0, s.Picture.Bounds().H()-2*16, s.Picture.Bounds().W(), s.Picture.Bounds().H()-7*16))
+
 	g := &GUI{
 		Window:      win,
 		Spritesheet: s,
@@ -88,6 +93,9 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 		Inventory: [][]*InventoryItem{},
 
 		HotbarSelectionSprite: pixel.NewSprite(s.Picture, pixel.R(16, s.Picture.Bounds().H()-1*16, 2*16, s.Picture.Bounds().H()-2*16)),
+
+		BigSprite: bigSprite,
+		BigOffset: pixel.V(win.Bounds().W()/2+32, 360),
 	}
 
 	//g.HealthBarPosition = pixel.V(g.OffsetX, g.Window.Bounds().H()-g.OffsetY)
@@ -238,6 +246,9 @@ func (g *GUI) DrawInventory() {
 			}
 		}
 	}
+
+	// draw big sprite
+	g.BigSprite.Draw(g.Window, pixel.IM.Moved(pixel.ZV).Scaled(pixel.ZV, g.Scale).Moved(g.BigOffset))
 }
 
 func (g *GUI) SetInventoryItems(items [][]*InventoryItem) {

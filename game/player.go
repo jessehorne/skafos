@@ -123,8 +123,8 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 		DebugRect:           MakeDebugRect(win, 16, 16),
 		MovementDirections:  []byte{},
 		Inventory:           [][]*InventoryItem{},
-		InventoryW:          8,
-		InventoryH:          5,
+		InventoryW:          7,
+		InventoryH:          3, // not counting hotbar
 		ShouldDrawInventory: false,
 	}
 

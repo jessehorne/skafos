@@ -291,6 +291,7 @@ func (g *GUI) ButtonCallback(btn pixel.Button, action pixel.Action) {
 			}
 
 			g.HandleCraftingSlotLeftClick(craftingClickedX, craftingClickedY)
+			g.HandleDeleteItemLeftClick(craftingClickedX, craftingClickedY)
 		}
 	} else if btn == pixel.MouseButtonRight && action == pixel.Press {
 		if g.ShouldDrawInventory {
@@ -406,6 +407,14 @@ func (g *GUI) ClearCraftingItems() {
 			g.CraftingSlots[y] = append(g.CraftingSlots[y], nil)
 		}
 	}
+}
+
+func (g *GUI) HandleDeleteItemLeftClick(x, y int) {
+	if x != 2 || y != -1 {
+		return
+	}
+
+	g.HoldingInvItem = nil
 }
 
 func (g *GUI) HandleCraftingSlotLeftClick(x, y int) {

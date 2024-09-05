@@ -3,6 +3,7 @@ package game
 import (
 	"github.com/gopxl/pixel/v2"
 	"github.com/gopxl/pixel/v2/backends/opengl"
+	"image"
 	"math"
 )
 
@@ -40,6 +41,10 @@ type Player struct {
 	IsSwinging          bool
 	SwingFrameSpeed     float64
 	InInventory         bool
+	MouseX              int // block position from bottom left
+	MouseY              int // block position from bottom left
+	MouseRectImage      *image.RGBA
+	MouseRectSprite     *pixel.Sprite
 }
 
 func NewPlayer(win *opengl.Window) (*Player, error) {
@@ -50,6 +55,8 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 
 	//w := s.Picture.Bounds().W()
 	h := s.Picture.Bounds().H()
+
+	mSprite := MakeDebugRect(win, 16, 16)
 
 	p := &Player{
 		Window:   win,
@@ -126,6 +133,7 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 		InventoryW:          7,
 		InventoryH:          3, // not counting hotbar
 		ShouldDrawInventory: false,
+		MouseRectSprite:     mSprite,
 	}
 
 	p.ClearInventory()
@@ -244,6 +252,8 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 }
 
 func (p *Player) Draw(win *opengl.Window, gui *GUI) {
+	p.MouseRectSprite.Draw(win, pixel.IM.Moved(p.GetMouseMapBlockPosition(win)))
+
 	currentFrame := int(math.Floor(p.CurrentFrame))
 
 	if p.IsSwinging {
@@ -425,4 +435,18 @@ func (p *Player) ThrowInventoryItem() {
 			}
 		}
 	}
+}
+
+func (p *Player) GetMouseMapPosition(win *opengl.Window) pixel.Vec {
+	return Cam.Matrix.Unproject(win.MousePosition())
+}
+
+// Returns the X and Y coordinates for the block the mouse is over on the map
+func (p *Player) GetMouseMapBlockPosition(win *opengl.Window) pixel.Vec {
+	mousePos := p.GetMouseMapPosition(win)
+
+	x := math.Floor(mousePos.X/16)*16 + 8
+	y := math.Floor(mousePos.Y/16)*16 + 8
+
+	return pixel.V(x, y)
 }

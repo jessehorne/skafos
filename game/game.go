@@ -138,6 +138,8 @@ func (g *Game) Update(win *opengl.Window, dt float64) {
 func (g *Game) Draw(win *opengl.Window) {
 	Cam.StartCamera(win)
 
+	g.Player.GetMouseMapBlockPosition(win)
+
 	// draw map
 	g.Map.FloorBatch.Clear()
 	g.Map.TreeBatchBottom.Clear()

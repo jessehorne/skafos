@@ -9,8 +9,14 @@ import (
 	"strconv"
 )
 
+const (
+	UnderlyingTypePlaceableBlock byte = 0
+)
+
 type InventoryItem struct {
+	UnderlyingType        byte
 	ItemType              byte
+	Frame                 byte
 	Amount                int
 	InventoryPosition     pixel.Vec
 	DrawPosition          pixel.Vec
@@ -20,13 +26,15 @@ type InventoryItem struct {
 	Atlas                 *text.Atlas
 }
 
-func NewInventoryItem(win *opengl.Window, itemType byte, amt int, inventoryPos pixel.Vec) *InventoryItem {
+func NewInventoryItem(underType, itemType, frame byte, amt int, inventoryPos pixel.Vec) *InventoryItem {
 	newItem := &InventoryItem{
+		UnderlyingType:    underType,
 		ItemType:          itemType,
+		Frame:             frame,
 		Amount:            amt,
 		InventoryPosition: inventoryPos,
 	}
-	count := text.New(newItem.GetDrawPosition(win), Atlas)
+	count := text.New(pixel.V(0, 0), Atlas)
 	count.Color = colornames.White
 	count.WriteString("0")
 	newItem.Count = count
@@ -63,6 +71,7 @@ func (i *InventoryItem) Draw(win *opengl.Window) {
 
 		i.Count.Clear()
 		i.Count.WriteString(strconv.Itoa(i.Amount))
+		i.Count.Orig = pos
 		i.Count.Draw(win, pixel.IM)
 	}
 }

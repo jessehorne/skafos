@@ -31,6 +31,30 @@ func NewMap(name string, s *Spritesheet) (*Map, error) {
 	}, nil
 }
 
+func (m *Map) BlockExists(chunk, coords IntVec) bool {
+	chunkY, chunkYExists := m.Chunks[chunk.Y]
+	if !chunkYExists {
+		return false
+	}
+
+	chunkX, chunkXExists := chunkY[chunk.X]
+	if !chunkXExists {
+		return false
+	}
+
+	blockY, blockYExists := chunkX.Blocks[coords.Y]
+	if !blockYExists {
+		return false
+	}
+
+	_, blockXExists := blockY[coords.X]
+	if !blockXExists {
+		return false
+	}
+
+	return true
+}
+
 func (m *Map) GenerateChunksAroundPlayer(g *Game, win *opengl.Window) {
 	for y := m.ChunkPosition.Y - m.DrawRadius; y < m.ChunkPosition.Y+m.DrawRadius; y++ {
 		for x := m.ChunkPosition.X - m.DrawRadius; x < m.ChunkPosition.X+m.DrawRadius; x++ {

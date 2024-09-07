@@ -12,45 +12,49 @@ const (
 
 // When an item is dropped, it "floats" and rotates around on the ground until someone picks it up
 type Floater struct {
-	Position      pixel.Vec
-	Velocity      pixel.Vec
-	OldPosition   pixel.Vec
-	ItemType      byte
-	Size          pixel.Vec
-	Scale         float64
-	Solid         bool
-	Sprite        *pixel.Sprite
-	RotationSpeed float64
-	Rotation      float64
-	ScaleSpeed    float64
-	ScaleMax      float64
-	ScaleMin      float64
-	ScaleDir      float64
-	DebugRect     *pixel.Sprite
-	Deleted       bool
+	Position       pixel.Vec
+	Velocity       pixel.Vec
+	OldPosition    pixel.Vec
+	UnderlyingType byte
+	ItemType       byte
+	Frame          byte
+	Size           pixel.Vec
+	Scale          float64
+	Solid          bool
+	Sprite         *pixel.Sprite
+	RotationSpeed  float64
+	Rotation       float64
+	ScaleSpeed     float64
+	ScaleMax       float64
+	ScaleMin       float64
+	ScaleDir       float64
+	DebugRect      *pixel.Sprite
+	Deleted        bool
 }
 
-func NewFloater(win *opengl.Window, t byte, position, velocity pixel.Vec) *Floater {
+func NewFloater(win *opengl.Window, underType, itemType, frame byte, position, velocity pixel.Vec) *Floater {
 	f := &Floater{
-		Position:      position,
-		Velocity:      velocity,
-		OldPosition:   position,
-		ItemType:      t,
-		Size:          pixel.V(8, 8),
-		Scale:         0.5,
-		ScaleSpeed:    0.25,
-		ScaleMax:      0.5,
-		ScaleMin:      0.4,
-		ScaleDir:      0, // 0 == up & 1 == down
-		Solid:         false,
-		RotationSpeed: 3,
-		Rotation:      0,
-		DebugRect:     MakeDebugRect(win, 8, 8),
+		Position:       position,
+		Velocity:       velocity,
+		OldPosition:    position,
+		UnderlyingType: underType,
+		ItemType:       itemType,
+		Frame:          frame,
+		Size:           pixel.V(8, 8),
+		Scale:          0.5,
+		ScaleSpeed:     0.25,
+		ScaleMax:       0.5,
+		ScaleMin:       0.4,
+		ScaleDir:       0, // 0 == up & 1 == down
+		Solid:          false,
+		RotationSpeed:  3,
+		Rotation:       0,
+		DebugRect:      MakeDebugRect(win, 8, 8),
 	}
 
-	if t == BlockTypeDirt {
+	if itemType == BlockTypeDirt {
 		f.Sprite = Tiles[BlockTypeDirt][BlockTypeDirtFrameDirt]
-	} else if t == BlockTypeGrass {
+	} else if itemType == BlockTypeGrass {
 		f.Sprite = Tiles[BlockTypeGrass][BlockTypeGrassFrame1]
 	}
 

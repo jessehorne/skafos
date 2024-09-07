@@ -18,7 +18,6 @@ const (
 )
 
 type Player struct {
-	Window              *opengl.Window
 	Position            pixel.Vec
 	OldPosition         pixel.Vec
 	Speed               map[byte]float64 // pixels per second
@@ -59,7 +58,6 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	mSprite := MakeDebugRect(win, 16, 16)
 
 	p := &Player{
-		Window:   win,
 		Position: pixel.V(0, 0),
 		Speed: map[byte]float64{
 			PlayerWalking: 32,
@@ -137,12 +135,7 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 	}
 
 	p.ClearInventory()
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(0, 0)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(1, 0)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(3, 0)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(4, 0)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeDirt, 10, pixel.V(5, 3)))
-	p.AddInventoryItem(NewInventoryItem(win, BlockTypeGrass, 1, pixel.V(6, 0)))
+	p.AddInventoryItem(NewInventoryItem(UnderlyingTypePlaceableBlock, BlockTypeDirt, BlockTypeDirtFrameDirt, 10, pixel.V(0, 0)))
 
 	return p, nil
 }
@@ -251,18 +244,20 @@ func (p *Player) Update(win *opengl.Window, dt float64) {
 	}
 }
 
-func (p *Player) Draw(win *opengl.Window, gui *GUI) {
-	p.MouseRectSprite.Draw(win, pixel.IM.Moved(p.GetMouseMapBlockPosition(win)))
-
+func (p *Player) Draw(game *Game) {
 	currentFrame := int(math.Floor(p.CurrentFrame))
 
-	if p.IsSwinging {
-		p.SwingFrames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
-	} else {
-		p.Frames[p.MovementDirection][currentFrame].Draw(win, pixel.IM.Moved(p.Position))
+	if !game.GUI.ShouldDrawInventory {
+		p.MouseRectSprite.Draw(game.Window, pixel.IM.Moved(p.GetMouseMapBlockPosition(game)))
 	}
 
-	gui.SetHotbarItems(p.Inventory[0], p.HotbarX)
+	if p.IsSwinging {
+		p.SwingFrames[p.MovementDirection][currentFrame].Draw(game.Window, pixel.IM.Moved(p.Position))
+	} else {
+		p.Frames[p.MovementDirection][currentFrame].Draw(game.Window, pixel.IM.Moved(p.Position))
+	}
+
+	game.GUI.SetHotbarItems(p.Inventory[0], p.HotbarX)
 }
 
 func (p *Player) GetChunkPosition() pixel.Vec {
@@ -300,7 +295,7 @@ func (p *Player) Collide(c Collideable) {
 		f := c.(*Floater)
 
 		if !f.Deleted {
-			p.AddItemToInventory(f.ItemType)
+			p.AddItemToInventory(f.UnderlyingType, f.ItemType, f.Frame)
 			f.Deleted = true
 		}
 	}
@@ -322,7 +317,7 @@ func (p *Player) DrawDebug(win *opengl.Window) {
 	p.DebugRect.Draw(win, pixel.IM.Moved(p.Position))
 }
 
-func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
+func (p *Player) ButtonCallback(game *Game, btn pixel.Button, action pixel.Action) {
 	if btn == pixel.MouseButtonLeft && action == pixel.Press {
 		if !p.InInventory {
 			if !p.IsSwinging {
@@ -330,12 +325,67 @@ func (p *Player) ButtonCallback(btn pixel.Button, action pixel.Action) {
 				p.IsSwinging = true
 			}
 		}
+	} else if btn == pixel.MouseButtonRight && action == pixel.Press {
+		p.HandleRightClick(game)
 	} else if btn == pixel.KeyLeftControl && action == pixel.Press {
 		if p.WalkingOrRunning == PlayerWalking {
 			p.WalkingOrRunning = PlayerRunning
 		} else if p.WalkingOrRunning == PlayerRunning {
 			p.WalkingOrRunning = PlayerWalking
 		}
+	}
+}
+
+func (p *Player) HandleRightClick(game *Game) {
+	if p.InInventory {
+		return
+	}
+
+	held := p.GetHeldItem()
+
+	if held == nil {
+		return
+	}
+
+	if held.UnderlyingType == UnderlyingTypePlaceableBlock {
+		p.PlaceBlock(game, held)
+	}
+}
+
+func (p *Player) GetMouseMapCoords(game *Game) (IntVec, IntVec) {
+	mousePos := p.GetMouseMapBlockPosition(game)
+
+	chunkX := math.Floor(mousePos.X / 256)
+	chunkY := math.Floor(mousePos.Y / 256)
+	x := (mousePos.X - chunkX*256) / 16
+	y := (mousePos.Y - chunkY*256) / 16
+
+	return NewIntVec(int(chunkX), int(chunkY)), NewIntVec(int(x), int(y))
+}
+
+func (p *Player) PlaceBlock(game *Game, item *InventoryItem) {
+	if item == nil {
+		return
+	}
+
+	if item.Amount <= 0 {
+		return
+	}
+
+	chunk, coords := p.GetMouseMapCoords(game)
+
+	exists := game.Map.BlockExists(chunk, coords)
+
+	if !exists {
+		return
+	}
+
+	b := NewBlock(game.Window, item.ItemType, item.Frame, game.Map.Chunks[chunk.Y][chunk.X].Blocks[coords.Y][coords.X][0].Position)
+	game.Map.Chunks[chunk.Y][chunk.X].Blocks[coords.Y][coords.X] = append(game.Map.Chunks[chunk.Y][chunk.X].Blocks[coords.Y][coords.X], b)
+	item.Amount -= 1
+
+	if item.Amount <= 0 {
+		p.RemoveInventoryItem(item)
 	}
 }
 
@@ -357,7 +407,11 @@ func (p *Player) AddInventoryItem(i *InventoryItem) {
 	p.Inventory[int(i.InventoryPosition.Y)][int(i.InventoryPosition.X)] = i
 }
 
-func (p *Player) AddItemToInventory(itemType byte) {
+func (p *Player) RemoveInventoryItem(i *InventoryItem) {
+	p.Inventory[int(i.InventoryPosition.Y)][int(i.InventoryPosition.X)] = nil
+}
+
+func (p *Player) AddItemToInventory(underType, itemType, frame byte) {
 	var foundItem *InventoryItem
 	var found bool
 	var foundX int
@@ -388,20 +442,20 @@ func (p *Player) AddItemToInventory(itemType byte) {
 		foundItem.Amount++
 	} else {
 		if found {
-			newInvItem := NewInventoryItem(p.Window, itemType, 1, pixel.V(float64(foundX), float64(foundY)))
+			newInvItem := NewInventoryItem(underType, itemType, frame, 1, pixel.V(float64(foundX), float64(foundY)))
 			p.Inventory[foundY][foundX] = newInvItem
 		}
 	}
 }
 
-func (p *Player) CharCallback(r rune) {
+func (p *Player) CharCallback(game *Game, r rune) {
 	if r >= 49 && r < 59 {
 		p.HotbarX = int(r - 49)
 	} else {
 		if !p.InInventory {
 			if r == 'q' {
 				// throw currently held item
-				p.ThrowInventoryItem()
+				p.ThrowInventoryItem(game)
 			}
 		}
 	}
@@ -411,14 +465,14 @@ func (p *Player) GetHeldItem() *InventoryItem {
 	return p.Inventory[0][p.HotbarX]
 }
 
-func (p *Player) ThrowInventoryItem() {
+func (p *Player) ThrowInventoryItem(game *Game) {
 	item := p.GetHeldItem()
 
 	if item != nil {
 		if item.Amount > 0 {
 			item.Amount -= 1
-			mousePos := p.Window.MousePosition()
-			adjusted := Cam.Matrix.Project(p.Position)
+			mousePos := game.Window.MousePosition()
+			adjusted := game.Camera.Matrix.Project(p.Position)
 
 			delta := mousePos.Sub(adjusted)
 			l := delta.Len()
@@ -426,7 +480,7 @@ func (p *Player) ThrowInventoryItem() {
 			delta.X = (delta.X / l) * 100.0
 			delta.Y = (delta.Y / l) * 100.0
 
-			newFloater := NewFloater(p.Window, item.ItemType, p.Position, delta)
+			newFloater := NewFloater(game.Window, item.UnderlyingType, item.ItemType, item.Frame, p.Position, delta)
 			Floaters = append(Floaters, newFloater)
 			AddCollideable(newFloater)
 
@@ -437,16 +491,16 @@ func (p *Player) ThrowInventoryItem() {
 	}
 }
 
-func (p *Player) GetMouseMapPosition(win *opengl.Window) pixel.Vec {
-	return Cam.Matrix.Unproject(win.MousePosition())
+func (p *Player) GetMouseMapPosition(game *Game) pixel.Vec {
+	return game.Camera.Matrix.Unproject(game.Window.MousePosition()).Add(pixel.V(8, 8))
 }
 
 // Returns the X and Y coordinates for the block the mouse is over on the map
-func (p *Player) GetMouseMapBlockPosition(win *opengl.Window) pixel.Vec {
-	mousePos := p.GetMouseMapPosition(win)
+func (p *Player) GetMouseMapBlockPosition(game *Game) pixel.Vec {
+	mousePos := p.GetMouseMapPosition(game)
 
-	x := math.Floor(mousePos.X/16)*16 + 8
-	y := math.Floor(mousePos.Y/16)*16 + 8
+	x := math.Floor(mousePos.X/16) * 16
+	y := math.Floor(mousePos.Y/16) * 16
 
 	return pixel.V(x, y)
 }

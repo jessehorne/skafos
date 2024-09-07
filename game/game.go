@@ -7,6 +7,7 @@ import (
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font"
 	"image"
+	"math"
 )
 
 var (
@@ -16,7 +17,6 @@ var (
 	Tiles        map[byte]map[byte]*pixel.Sprite
 	Floaters     []*Floater
 	Collideables []Collideable // list of objects to check for collision
-	Cam          *Camera
 
 	FloaterBorderImage  *image.RGBA
 	FloaterBorderSprite *pixel.Sprite
@@ -27,6 +27,8 @@ type Game struct {
 	Player                *Player
 	CollideablesDrawDebug bool
 	GUI                   *GUI
+	Window                *opengl.Window
+	Camera                *Camera
 }
 
 func NewGame(name string, win *opengl.Window) (*Game, error) {
@@ -78,17 +80,19 @@ func NewGame(name string, win *opengl.Window) (*Game, error) {
 		return nil, err
 	}
 
-	Cam = NewCamera()
-
 	gui, err := NewGUI(win)
 	if err != nil {
 		return nil, err
 	}
 
+	cam := NewCamera()
+
 	g := &Game{
 		Map:    m,
 		Player: p,
 		GUI:    gui,
+		Window: win,
+		Camera: cam,
 	}
 
 	return g, nil
@@ -100,7 +104,7 @@ func (g *Game) Init(win *opengl.Window) {
 	FloaterBorderImage, FloaterBorderSprite = MakeRect(18, 18, colornames.Black)
 
 	// add an example floater at 50, 50
-	f := NewFloater(win, FloaterTypeDirt, pixel.V(50, 50), pixel.V(0, 0))
+	f := NewFloater(win, UnderlyingTypePlaceableBlock, BlockTypeDirt, BlockTypeDirtFrameDirt, pixel.V(50, 50), pixel.V(0, 0))
 	Floaters = append(Floaters, f)
 	AddCollideable(f)
 }
@@ -130,15 +134,15 @@ func (g *Game) Update(win *opengl.Window, dt float64) {
 
 	g.Player.Update(win, dt)
 	g.GUI.Update(dt)
-	Cam.Update(g.Player.Position)
+	g.Camera.Update(g.Player.Position)
 
 	g.CheckCollisions()
 }
 
-func (g *Game) Draw(win *opengl.Window) {
-	Cam.StartCamera(win)
+func (g *Game) Draw() {
+	g.Camera.StartCamera(g.Window)
 
-	g.Player.GetMouseMapBlockPosition(win)
+	g.Player.GetMouseMapBlockPosition(g)
 
 	// draw map
 	g.Map.FloorBatch.Clear()
@@ -146,35 +150,47 @@ func (g *Game) Draw(win *opengl.Window) {
 	g.Map.TreeBatchTop.Clear()
 
 	g.Map.RefreshDrawBatch()
-	g.Map.FloorBatch.Draw(win)
-	g.Map.TreeBatchBottom.Draw(win)
+	g.Map.FloorBatch.Draw(g.Window)
+	g.Map.TreeBatchBottom.Draw(g.Window)
 
 	// draw floaters
 	for _, f := range Floaters {
-		f.Draw(win)
+		f.Draw(g.Window)
 	}
 
 	// draw player
-	g.Player.Draw(win, g.GUI)
+	g.Player.Draw(g)
 
-	g.Map.TreeBatchTop.Draw(win)
+	g.Map.TreeBatchTop.Draw(g.Window)
 
 	// debug
 	if g.CollideablesDrawDebug {
 		for i := 0; i < len(Collideables); i++ {
-			Collideables[i].DrawDebug(win)
+			Collideables[i].DrawDebug(g.Window)
 		}
 	}
 
-	Cam.EndCamera(win)
+	g.Camera.EndCamera(g.Window)
 
 	g.GUI.SetInventoryItems(g.Player.Inventory)
-	g.GUI.Draw()
+	g.GUI.Draw(g.Camera)
 }
 
 func (g *Game) ButtonCallback(btn pixel.Button, action pixel.Action) {
-	g.Player.ButtonCallback(btn, action)
+	g.Player.ButtonCallback(g, btn, action)
 	g.GUI.ButtonCallback(btn, action)
+}
+
+func (g *Game) Scroll(win *opengl.Window, scroll pixel.Vec) {
+	if scroll.Y == 1 {
+		if g.Camera.Zoom < 42 {
+			g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+		}
+	} else {
+		if g.Camera.Zoom > 1.6 {
+			g.Camera.Zoom *= math.Pow(g.Camera.ZoomSpeed, scroll.Y)
+		}
+	}
 }
 
 func (g *Game) CharCallback(r rune) {
@@ -196,7 +212,7 @@ func (g *Game) CharCallback(r rune) {
 		g.Player.InInventory = g.GUI.ShouldDrawInventory
 	}
 
-	g.Player.CharCallback(r)
+	g.Player.CharCallback(g, r)
 }
 
 func AddCollideable(c Collideable) {

@@ -8,7 +8,6 @@ import (
 	"golang.org/x/image/colornames"
 	"image"
 	"log"
-	"math"
 	"os"
 	"time"
 )
@@ -56,15 +55,7 @@ func run() {
 	last := time.Now()
 
 	win.SetScrollCallback(func(win *opengl.Window, scroll pixel.Vec) {
-		if scroll.Y == 1 {
-			if game.Cam.Zoom < 42 {
-				game.Cam.Zoom *= math.Pow(game.Cam.ZoomSpeed, scroll.Y)
-			}
-		} else {
-			if game.Cam.Zoom > 1.6 {
-				game.Cam.Zoom *= math.Pow(game.Cam.ZoomSpeed, scroll.Y)
-			}
-		}
+		g.Scroll(win, scroll)
 	})
 
 	win.SetButtonCallback(func(win *opengl.Window, button pixel.Button, action pixel.Action) {
@@ -87,7 +78,7 @@ func run() {
 		// only draw 30 fps
 		if currentFrame >= maxFPS {
 			win.Clear(colornames.Black)
-			g.Draw(win)
+			g.Draw()
 			currentFrame = 0
 		}
 

@@ -110,8 +110,8 @@ func NewGUI(win *opengl.Window) (*GUI, error) {
 	return g, nil
 }
 
-func (g *GUI) Draw() {
-	Cam.EndCamera(g.Window)
+func (g *GUI) Draw(cam *Camera) {
+	cam.EndCamera(g.Window)
 	g.RedrawBars()
 	g.DrawHotbar()
 
@@ -124,7 +124,7 @@ func (g *GUI) Draw() {
 		g.HoldingInvItem.Count.Draw(g.Window, pixel.IM)
 	}
 
-	Cam.StartCamera(g.Window)
+	cam.StartCamera(g.Window)
 }
 
 func (g *GUI) RedrawBars() {
@@ -354,7 +354,7 @@ func (g *GUI) HandleInventoryRightClick(x, y int) {
 				half := invItem.Amount / 2
 				invItem.Amount -= half
 
-				newItem := NewInventoryItem(g.Window, invItem.ItemType, half, invItem.InventoryPosition)
+				newItem := NewInventoryItem(invItem.UnderlyingType, invItem.ItemType, invItem.Frame, half, invItem.InventoryPosition)
 				newItem.ShouldUseDrawPosition = true
 				newItem.Count.Clear()
 				newItem.Count.WriteString(strconv.Itoa(half))
@@ -379,7 +379,7 @@ func (g *GUI) HandleInventoryRightClick(x, y int) {
 		// if invItem is nil we should create a 1 amount here and subtract from current
 		if g.HoldingInvItem != nil {
 			if g.HoldingInvItem.Amount > 0 {
-				newItem := NewInventoryItem(g.Window, g.HoldingInvItem.ItemType, 1, pixel.V(float64(x), float64(y)))
+				newItem := NewInventoryItem(g.HoldingInvItem.UnderlyingType, g.HoldingInvItem.ItemType, g.HoldingInvItem.Frame, 1, pixel.V(float64(x), float64(y)))
 				newItem.Count.Orig = newItem.GetDrawPosition(g.Window)
 				newItem.Count.Clear()
 				newItem.Count.WriteString("1")
@@ -484,7 +484,7 @@ func (g *GUI) HandleCraftingSlotRightClick(x, y int) {
 				half := invItem.Amount / 2
 				invItem.Amount -= half
 
-				newItem := NewInventoryItem(g.Window, invItem.ItemType, half, invItem.InventoryPosition)
+				newItem := NewInventoryItem(invItem.UnderlyingType, invItem.ItemType, invItem.Frame, half, invItem.InventoryPosition)
 				newItem.ShouldUseDrawPosition = true
 				newItem.Count.Clear()
 				newItem.Count.WriteString(strconv.Itoa(half))
@@ -509,7 +509,7 @@ func (g *GUI) HandleCraftingSlotRightClick(x, y int) {
 		// if invItem is nil we should create a 1 amount here and subtract from current
 		if g.HoldingInvItem != nil {
 			if g.HoldingInvItem.Amount > 0 {
-				newItem := NewInventoryItem(g.Window, g.HoldingInvItem.ItemType, 1, pixel.V(float64(x), float64(y)))
+				newItem := NewInventoryItem(g.HoldingInvItem.UnderlyingType, g.HoldingInvItem.ItemType, g.HoldingInvItem.Frame, 1, pixel.V(float64(x), float64(y)))
 				newItem.Count.Orig = newItem.GetCraftingPosition(g.Window, g.Scale)
 				newItem.Count.Clear()
 				newItem.Count.WriteString("1")

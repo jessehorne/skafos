@@ -44,6 +44,7 @@ type Player struct {
 	MouseY              int // block position from bottom left
 	MouseRectImage      *image.RGBA
 	MouseRectSprite     *pixel.Sprite
+	MaxPlaceDistance    float64
 }
 
 func NewPlayer(win *opengl.Window) (*Player, error) {
@@ -132,10 +133,11 @@ func NewPlayer(win *opengl.Window) (*Player, error) {
 		InventoryH:          3, // not counting hotbar
 		ShouldDrawInventory: false,
 		MouseRectSprite:     mSprite,
+		MaxPlaceDistance:    3,
 	}
 
 	p.ClearInventory()
-	p.AddInventoryItem(NewInventoryItem(UnderlyingTypePlaceableBlock, BlockTypeDirt, BlockTypeDirtFrameDirt, 10, pixel.V(0, 0)))
+	p.AddInventoryItem(NewInventoryItem(UnderlyingTypePlaceableBlock, BlockTypeDirt, BlockTypeDirtFrameDirt, 100, pixel.V(0, 0)))
 
 	return p, nil
 }
@@ -249,6 +251,10 @@ func (p *Player) Draw(game *Game) {
 
 	if !game.GUI.ShouldDrawInventory {
 		p.MouseRectSprite.Draw(game.Window, pixel.IM.Moved(p.GetMouseMapBlockPosition(game)))
+
+		if game.CollideablesDrawDebug {
+			p.MouseRectSprite.Draw(game.Window, pixel.IM.Moved(p.GetBlockPosition().ToVec().Scaled(16)))
+		}
 	}
 
 	if p.IsSwinging {
@@ -265,6 +271,13 @@ func (p *Player) GetChunkPosition() pixel.Vec {
 	y := math.Floor(p.Position.Y / 256)
 
 	return pixel.V(x, y)
+}
+
+func (p *Player) GetBlockPosition() IntVec {
+	x := math.Floor((p.Position.X + 8) / 16)
+	y := math.Floor((p.Position.Y) / 16)
+
+	return NewIntVec(int(x), int(y))
 }
 
 func (p *Player) GetPosition() pixel.Vec {
@@ -364,19 +377,31 @@ func (p *Player) GetMouseMapCoords(game *Game) (IntVec, IntVec) {
 }
 
 func (p *Player) PlaceBlock(game *Game, item *InventoryItem) {
-	if item == nil {
+	// users have a max reach distance
+	dis := p.GetMouseMapBlockCoords(game).Sub(p.GetBlockPosition().ToVec()).Len()
+	if dis >= float64(p.MaxPlaceDistance) {
 		return
 	}
 
+	if item == nil {
+		return
+	}
 	if item.Amount <= 0 {
 		return
 	}
 
 	chunk, coords := p.GetMouseMapCoords(game)
-
 	exists := game.Map.BlockExists(chunk, coords)
-
 	if !exists {
+		return
+	}
+
+	// if last block in stack is the same, don't double place
+	stack := game.Map.Chunks[chunk.Y][chunk.X].Blocks[coords.Y][coords.X]
+	if len(stack) == 0 {
+		return
+	}
+	if stack[len(stack)-1].Type == item.ItemType {
 		return
 	}
 
@@ -501,6 +526,15 @@ func (p *Player) GetMouseMapBlockPosition(game *Game) pixel.Vec {
 
 	x := math.Floor(mousePos.X/16) * 16
 	y := math.Floor(mousePos.Y/16) * 16
+
+	return pixel.V(x, y)
+}
+
+func (p *Player) GetMouseMapBlockCoords(game *Game) pixel.Vec {
+	mousePos := p.GetMouseMapPosition(game)
+
+	x := math.Floor(mousePos.X / 16)
+	y := math.Floor(mousePos.Y / 16)
 
 	return pixel.V(x, y)
 }
